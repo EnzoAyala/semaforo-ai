@@ -1,0 +1,34 @@
+name : CI - SemaforoIA Pipeline
+
+on:
+    push:
+      branches: [ main, dev/brillight ]
+    pull_request:
+      branches: [ main ]
+
+jobs:
+  quality-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Desacragar codigo del repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+            python-version: '3.11'
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      - name: Pruebas unitaria
+        run: pytest
+
+      - name: Analisis de seguridad del codigo
+        run: bandit -r src
+
+      - name: Construir imagen Docker
+        run: docker build -t semaforo-ia:latest .
+
+      - name: Despliegue simulado
+        run: echo "Despliegue simulado realizado con exito"
