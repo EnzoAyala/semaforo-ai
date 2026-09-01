@@ -10,11 +10,11 @@ jobs:
   quality-and-deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Desacragar codigo del repositorio
-        uses: actions/checkout@v4
+      - name: Descargar codigo del repositorio
+        uses: actions/checkout@v4.2.2
 
       - name: Configurar Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v5.4.0
         with:
             python-version: '3.11'
 
