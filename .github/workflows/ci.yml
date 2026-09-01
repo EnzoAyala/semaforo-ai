@@ -28,7 +28,12 @@ jobs:
         run: bandit -r src
 
       - name: Construir imagen Docker
-        run: docker build -t semaforo-ia:latest .
+        run: |
+          docker build -t semaforo-ia:latest .
+          docker run --rm semaforo-ia:latest
+
+      - name: Ejecutar simulación de la plicacion
+        run: python src/app.py
 
       - name: Despliegue simulado
         run: echo "Despliegue simulado realizado con exito"
