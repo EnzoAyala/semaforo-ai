@@ -19,7 +19,7 @@ jobs:
             python-version: '3.11'
 
       - name: Instalar dependencias
-        run: pip install -r requeriments.txt
+        run: pip install -r requirements.txt
 
       - name: Pruebas unitaria
         run: pytest
