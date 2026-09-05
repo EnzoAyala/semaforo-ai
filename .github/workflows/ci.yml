@@ -9,6 +9,8 @@ on:
 jobs:
   quality-and-deploy:
     runs-on: ubuntu-latest
+    env:
+      PYTHONPYCACHEPREFIX: ${{ github.workspace }}/.cache/python
     steps:
       - name: Descargar codigo del repositorio
         uses: actions/checkout@v4.2.2
@@ -22,7 +24,7 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Pruebas unitaria
-        run: pytest
+        run: python -m pytest -o cache_dir=.cache/pytest
 
       - name: Analisis de seguridad del codigo
         run: bandit -r src

@@ -74,14 +74,18 @@ semaforo-ai/
 ## 4. Ejecución del Proyecto y Pruebas
 
 ### 🔹 Ejecutar Simulación en Consola
-```bash
-python src/app.py
+```powershell
+.\scripts\run.ps1 app
 ```
 
 ### 🔹 Ejecutar Pruebas Unitarias Automatizadas
-```bash
-pytest -v
+```powershell
+.\scripts\run.ps1 test -v
 ```
+
+Los comandos anteriores almacenan el bytecode de Python en `.cache/python/` y la caché de pytest en `.cache/pytest/`, por lo que no se crean carpetas `__pycache__` en `src/` ni `tests/`.
+
+Si Windows bloquea la ejecución de scripts, usa `powershell -ExecutionPolicy Bypass -File .\scripts\run.ps1 app` o `powershell -ExecutionPolicy Bypass -File .\scripts\run.ps1 test -v`. Esta opción solo se aplica a esa ejecución y no modifica la política del sistema.
 
 ### 🔹 Ejecutar Análisis de Seguridad de Código
 ```bash
