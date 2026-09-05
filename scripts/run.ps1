@@ -1,4 +1,3 @@
-[CmdletBinding()]
 param(
     [Parameter(Mandatory = $true, Position = 0)]
     [ValidateSet('app', 'test')]

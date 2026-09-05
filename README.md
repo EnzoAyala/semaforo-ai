@@ -80,7 +80,7 @@ semaforo-ai/
 
 ### 🔹 Ejecutar Pruebas Unitarias Automatizadas
 ```powershell
-.\scripts\run.ps1 test -v
+.\scripts\run.ps1 test -- -v
 ```
 
 Los comandos anteriores almacenan el bytecode de Python en `.cache/python/` y la caché de pytest en `.cache/pytest/`, por lo que no se crean carpetas `__pycache__` en `src/` ni `tests/`.
