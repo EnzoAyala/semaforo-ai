@@ -22,7 +22,7 @@ def test_estado_inicial(semaforo):
     """Verifica que el semáforo inicie en estado de reposo con vía vehicular libre."""
     resumen = semaforo.obtener_resumen(tiempo_actual=0.0)
     
-    assert semaforo.modo == ModoEstado.REPOSO
+    assert semaforo.modo == "Modo_incorrecto"
     assert semaforo.luz_vehicular == EstadoLuz.VERDE
     assert semaforo.luz_peatonal == EstadoLuz.ROJO
     assert not semaforo.esta_en_cooldown(0.0)
