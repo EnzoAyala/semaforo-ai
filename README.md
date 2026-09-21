@@ -1,7 +1,7 @@
 # SemaforoIA - Control Peatonal Inteligente con Sensores IoT
 
 [![CI - SemaforoIA Pipeline](https://github.com/EnzoAyala/semaforo-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/EnzoAyala/semaforo-ai/actions/workflows/ci.yml)
-![Python Version](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.14-blue)
+![Python Version](https://img.shields.io/badge/python-3.11-blue)
 ![Tests](https://img.shields.io/badge/pytest-10%20passed-success)
 ![Security](https://img.shields.io/badge/bandit-0%20issues-brightgreen)
 
@@ -61,7 +61,7 @@ semaforo-ai/
 │   ├── logic.py                 # Lógica de estados, temporización e inyección de tiempo
 │   └── app.py                   # Script ejecutable de simulación en consola
 │
-├── test/
+├── tests/
 │   └── test_logic.py            # Batería completa de pruebas unitarias con Pytest
 │
 ├── Dockerfile                   # Contenedorización con Python 3.11-slim
@@ -109,16 +109,16 @@ Todas las pruebas unitarias pasan al 100% de forma determinista y en milisegundo
 ============================= test session starts =============================
 collected 10 items
 
-test/test_logic.py::test_estado_inicial PASSED                           [ 10%]
-test/test_logic.py::test_deteccion_peaton_activa_luz_roja PASSED         [ 20%]
-test/test_logic.py::test_deteccion_repetida_durante_fase_peatonal_no_reinicia_tiempo PASSED [ 30%]
-test/test_logic.py::test_transicion_de_fase_peatonal_a_cooldown PASSED   [ 40%]
-test/test_logic.py::test_deteccion_durante_cooldown_es_rechazada PASSED  [ 50%]
-test/test_logic.py::test_transicion_de_cooldown_a_reposo PASSED          [ 60%]
-test/test_logic.py::test_nueva_deteccion_exitosa_post_cooldown PASSED    [ 70%]
-test/test_logic.py::test_condiciones_de_borde_temporales PASSED          [ 80%]
-test/test_logic.py::test_configuracion_tiempos_personalizados PASSED     [ 90%]
-test/test_logic.py::test_controlar_semaforo_evento_helper PASSED         [100%]
+tests/test_logic.py::test_estado_inicial PASSED                           [ 10%]
+tests/test_logic.py::test_deteccion_peaton_activa_luz_roja PASSED         [ 20%]
+tests/test_logic.py::test_deteccion_repetida_durante_fase_peatonal_no_reinicia_tiempo PASSED [ 30%]
+tests/test_logic.py::test_transicion_de_fase_peatonal_a_cooldown PASSED   [ 40%]
+tests/test_logic.py::test_deteccion_durante_cooldown_es_rechazada PASSED  [ 50%]
+tests/test_logic.py::test_transicion_de_cooldown_a_reposo PASSED          [ 60%]
+tests/test_logic.py::test_nueva_deteccion_exitosa_post_cooldown PASSED    [ 70%]
+tests/test_logic.py::test_condiciones_de_borde_temporales PASSED          [ 80%]
+tests/test_logic.py::test_configuracion_tiempos_personalizados PASSED     [ 90%]
+tests/test_logic.py::test_controlar_semaforo_evento_helper PASSED         [100%]
 
 ============================= 10 passed in 0.30s ==============================
 ```
