@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { semaforoService } from '../services/api';
 
 export const EmailAlertCard = ({ modo, onNotificar }) => {
-  const [correo, setCorreo] = useState('rickayalatarazona@gmail.com');
+  const [correo, setCorreo] = useState('');
   const [cargando, setCargando] = useState(false);
 
   const handleEnviar = async () => {
