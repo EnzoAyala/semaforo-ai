@@ -1,2 +1,4 @@
 pytest
 bandit
+fastapi
+uvicorn
