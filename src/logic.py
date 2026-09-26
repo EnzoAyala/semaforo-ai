@@ -1,6 +1,6 @@
 """
 Módulo de Lógica del Semáforo Peatonal Inteligente (SemaforoIA).
-Soporta las luces VERDE, AMARILLO y ROJO para transiciones realistas.
+Soporta las luces VERDE, AMARILLO y ROJO con cálculo determinista de transiciones.
 """
 
 from enum import Enum
@@ -15,10 +15,10 @@ class EstadoLuz(str, Enum):
 
 
 class ModoEstado(str, Enum):
-    REPOSO = "REPOSO"              # Vehículos en verde, peatones en rojo
+    REPOSO = "REPOSO"                        # Vehículos en verde, peatones en rojo
     TRANSICION_AMARILLO = "TRANSICION_AMARILLO" # Advertencia vehicular (3s)
-    FASE_PEATONAL = "FASE_PEATONAL" # Vehículos en rojo (60s), peatones en verde
-    COOLDOWN = "COOLDOWN"          # Vehículos en verde (120s), sensor bloqueado
+    FASE_PEATONAL = "FASE_PEATONAL"         # Vehículos en rojo (60s), peatones en verde
+    COOLDOWN = "COOLDOWN"                  # Vehículos en verde (120s), sensor bloqueado
 
 
 class SemaforoInteligente:
@@ -50,9 +50,15 @@ class SemaforoInteligente:
             return self._ultimo_tiempo_registrado
         return time.time()
 
+    def esta_en_cooldown(self, tiempo_actual: Optional[float] = None) -> bool:
+        """Verifica si el semáforo se encuentra en estado de cooldown."""
+        self.actualizar_estado(tiempo_actual)
+        return self.modo == ModoEstado.COOLDOWN
+
     def solicitar_cruce(self, tiempo_actual: Optional[float] = None) -> bool:
         """
-        Procesa la señal del sensor PIR. Transiciona a AMARILLO previo a la FASE_PEATONAL.
+        Procesa la señal del sensor PIR.
+        En estado REPOSO transiciona inmediatamente a TRANSICION_AMARILLO por 3s.
         """
         t = self._obtener_tiempo(tiempo_actual)
         self.actualizar_estado(t)
@@ -69,11 +75,12 @@ class SemaforoInteligente:
 
     def actualizar_estado(self, tiempo_actual: Optional[float] = None) -> ModoEstado:
         """
-        Transiciones: REPOSO -> TRANSICION_AMARILLO -> FASE_PEATONAL -> COOLDOWN -> REPOSO
+        Cadena de transiciones temporales:
+        REPOSO -> TRANSICION_AMARILLO (3s) -> FASE_PEATONAL (60s) -> COOLDOWN (120s) -> REPOSO
         """
         t = self._obtener_tiempo(tiempo_actual)
 
-        # Transición de Amarillo (3s) a Rojo Peatonal (60s)
+        # Transición de Amarillo (3s) a Fase Peatonal (60s)
         if self.modo == ModoEstado.TRANSICION_AMARILLO:
             if self.tiempo_fin_fase is not None and t >= self.tiempo_fin_fase:
                 self.modo = ModoEstado.FASE_PEATONAL
@@ -109,11 +116,6 @@ class SemaforoInteligente:
             return 0.0
         return max(0.0, self.tiempo_fin_fase - t)
 
-    def esta_en_cooldown(self, tiempo_actual: Optional[float] = None) -> bool:
-        """Retorna True si el semáforo está en período de enfriamiento."""
-        self.actualizar_estado(tiempo_actual)
-        return self.modo == ModoEstado.COOLDOWN
-
     def obtener_resumen(self, tiempo_actual: Optional[float] = None) -> Dict[str, Any]:
         t = self._obtener_tiempo(tiempo_actual)
         self.actualizar_estado(t)
@@ -131,11 +133,14 @@ class SemaforoInteligente:
 def controlar_semaforo_evento(
     semaforo: SemaforoInteligente,
     hay_peaton: bool,
-    tiempo_actual: Optional[float] = None
+    tiempo_actual: float
 ) -> Dict[str, Any]:
-    """Procesa un evento del sensor y retorna el resumen actualizado."""
+    """
+    Función helper que procesa eventos de detección del sensor PIR.
+    """
     if hay_peaton:
-        semaforo.solicitar_cruce(tiempo_actual)
+        semaforo.solicitar_cruce(tiempo_actual=tiempo_actual)
     else:
-        semaforo.actualizar_estado(tiempo_actual)
-    return semaforo.obtener_resumen(tiempo_actual)
+        semaforo.actualizar_estado(tiempo_actual=tiempo_actual)
+    
+    return semaforo.obtener_resumen(tiempo_actual=tiempo_actual)
