@@ -1,4 +1,3 @@
-import React from 'react';
 import './App.css';
 
 import { useSemaforo } from './hooks/useSemaforo';
@@ -7,6 +6,7 @@ import { MetricsGrid } from './components/MetricsGrid';
 import { TrafficLight } from './components/TrafficLight';
 import { StatusBanner } from './components/StatusBanner';
 import { EmailAlertCard } from './components/EmailAlertCard';
+import { Chatbot } from './components/Chatbot';
 
 export function App() {
   const { estado, mensaje, setMensaje, solicitarCruce } = useSemaforo();
@@ -37,6 +37,8 @@ export function App() {
         modo={estado.modo} 
         onNotificar={setMensaje} 
       />
+
+      <Chatbot />
     </div>
   );
 }

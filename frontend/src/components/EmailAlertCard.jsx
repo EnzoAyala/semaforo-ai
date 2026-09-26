@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { semaforoService } from '../services/api';
 
 export const EmailAlertCard = ({ modo, onNotificar }) => {

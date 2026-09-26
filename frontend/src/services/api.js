@@ -47,5 +47,26 @@ export const semaforoService = {
       console.error('Error en servicio de correo:', error);
       return null;
     }
+  },
+
+  // Consultar al asistente; el backend añade el estado actual del semáforo.
+  async consultarChatbot(consulta, apiKey) {
+    const res = await fetch(`${API_BASE_URL}/chatbot`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ consulta, proveedor: 'gemini', api_key: apiKey || null }),
+    });
+
+    if (!res.ok) {
+      let mensaje = 'No se pudo contactar al asistente';
+      try {
+        const error = await res.json();
+        if (error.detail) mensaje = error.detail;
+      } catch {
+        // Conserva el mensaje genérico si la API no responde con JSON.
+      }
+      throw new Error(mensaje);
+    }
+    return await res.json();
   }
 };

@@ -182,6 +182,20 @@ Instalar las dependencias:
 pip install -r requirements.txt
 ```
 
+Configurar la API de Groq para habilitar el chatbot (PowerShell):
+
+```powershell
+$env:GROQ_API_KEY="tu_clave_de_groq"
+```
+
+Opcionalmente se puede cambiar el modelo con `GROQ_MODEL`; por defecto se usa
+`llama-3.3-70b-versatile`. La clave debe mantenerse únicamente en una variable de
+entorno y no debe subirse al repositorio.
+
+El módulo de correo también requiere `SMTP_EMAIL` y `SMTP_PASSWORD`. Puedes usar
+`.env.example` como referencia, pero la aplicación lee estas variables desde el
+entorno y nunca deben guardarse claves reales en Git.
+
 Iniciar la API:
 
 ```bash
@@ -193,6 +207,18 @@ La API estará disponible en:
 ```text
 http://localhost:8000
 ```
+
+El endpoint `POST /api/chatbot` recibe `{"consulta": "¿Puedo cruzar?"}` e inyecta
+automáticamente el estado actual del semáforo antes de consultar a Groq.
+
+La interfaz también admite xAI mediante `XAI_API_KEY` y el modelo `grok-4.7`.
+Para una demostración local se puede escribir la clave en el campo protegido del
+chatbot; se envía al backend únicamente con la consulta y no se persiste. En un
+despliegue real se recomienda configurar la clave solo como variable de entorno.
+
+También se admite Google Gemini mediante `GEMINI_API_KEY`. La interfaz usa por
+defecto el modelo estable `gemini-3.6-flash` e incluye un botón para validar la
+clave antes de enviar consultas. `GEMINI_MODEL` permite cambiar el identificador.
 
 ---
 

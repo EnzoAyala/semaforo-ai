@@ -18,10 +18,14 @@ def enviar_correo_alerta(
     """
     Envía un correo automático con el estado actual del semáforo usando SMTP de Gmail.
     """
-    remitente = os.getenv("SMTP_EMAIL", "rickayalatarazona@gmail.com")
-    password = os.getenv("SMTP_PASSWORD", "yfzv ukfl vuss bwqf")
+    remitente = os.getenv("SMTP_EMAIL")
+    password = os.getenv("SMTP_PASSWORD")
     servidor_smtp = os.getenv("SMTP_SERVER", "smtp.gmail.com")
     puerto_smtp = int(os.getenv("SMTP_PORT", "587"))
+
+    if not remitente or not password:
+        print("❌ Configura SMTP_EMAIL y SMTP_PASSWORD para enviar correos.")
+        return False
 
     msg = MIMEMultipart()
     msg["From"] = remitente

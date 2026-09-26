@@ -2,3 +2,6 @@ pytest
 bandit
 fastapi
 uvicorn
+groq
+openai
+google-genai

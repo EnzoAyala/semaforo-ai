@@ -1,5 +1,3 @@
-import React from 'react';
-
 export const Header = () => (
   <header className="app-header">
     <h1>🚦 SemaforoIA - Control Peatonal IoT</h1>

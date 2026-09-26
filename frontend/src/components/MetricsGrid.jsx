@@ -1,5 +1,3 @@
-import React from 'react';
-
 export const MetricsGrid = ({ modo, tiempoRestante }) => (
   <div className="metrics-grid">
     <div className="metric-card">

@@ -109,6 +109,11 @@ class SemaforoInteligente:
             return 0.0
         return max(0.0, self.tiempo_fin_fase - t)
 
+    def esta_en_cooldown(self, tiempo_actual: Optional[float] = None) -> bool:
+        """Retorna True si el semáforo está en período de enfriamiento."""
+        self.actualizar_estado(tiempo_actual)
+        return self.modo == ModoEstado.COOLDOWN
+
     def obtener_resumen(self, tiempo_actual: Optional[float] = None) -> Dict[str, Any]:
         t = self._obtener_tiempo(tiempo_actual)
         self.actualizar_estado(t)
@@ -121,3 +126,16 @@ class SemaforoInteligente:
             "tiempo_restante_seg": round(self.tiempo_restante_fase(t), 2),
             "tiempo_actual": t
         }
+
+
+def controlar_semaforo_evento(
+    semaforo: SemaforoInteligente,
+    hay_peaton: bool,
+    tiempo_actual: Optional[float] = None
+) -> Dict[str, Any]:
+    """Procesa un evento del sensor y retorna el resumen actualizado."""
+    if hay_peaton:
+        semaforo.solicitar_cruce(tiempo_actual)
+    else:
+        semaforo.actualizar_estado(tiempo_actual)
+    return semaforo.obtener_resumen(tiempo_actual)
