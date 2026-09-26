@@ -15,30 +15,38 @@ export function App() {
     <div className="app-container">
       <Header />
 
-      <MetricsGrid 
-        modo={estado.modo} 
-        tiempoRestante={estado.tiempo_restante_seg} 
-      />
+      <div className="dashboard-grid">
+        {/* Columna Izquierda: Chatbot Asistente */}
+        <section className="column-left">
+          <Chatbot />
+        </section>
 
-      <TrafficLight 
-        luzVehicular={estado.luz_vehicular} 
-        luzPeatonal={estado.luz_peatonal} 
-      />
+        {/* Columna Derecha: Panel de Control y Semáforo */}
+        <section className="column-right">
+          <MetricsGrid 
+            modo={estado.modo} 
+            tiempoRestante={estado.tiempo_restante_seg} 
+          />
 
-      <StatusBanner mensaje={mensaje} />
+          <TrafficLight 
+            luzVehicular={estado.luz_vehicular} 
+            luzPeatonal={estado.luz_peatonal} 
+          />
 
-      <div className="button-group" style={{ margin: '20px 0' }}>
-        <button className="btn btn-primary" onClick={solicitarCruce}>
-          🚶 Simular Peatón (Sensor PIR)
-        </button>
+          <div className="action-container">
+            <button className="btn btn-primary btn-sensor" onClick={solicitarCruce}>
+              🚶 Simular Peatón (Sensor PIR)
+            </button>
+          </div>
+
+          <StatusBanner mensaje={mensaje} />
+
+          <EmailAlertCard 
+            modo={estado.modo} 
+            onNotificar={setMensaje} 
+          />
+        </section>
       </div>
-
-      <EmailAlertCard 
-        modo={estado.modo} 
-        onNotificar={setMensaje} 
-      />
-
-      <Chatbot />
     </div>
   );
 }

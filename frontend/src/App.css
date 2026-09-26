@@ -1,227 +1,110 @@
 :root {
-  /* Fondos Claros Profesionales */
-  --bg-main: #f8fafc;
+  /* Paleta Neutra y Profesional */
+  --bg-page: #f1f5f9;
   --bg-card: #ffffff;
-  --bg-card-hover: #f1f5f9;
+  --bg-input: #f8fafc;
+  --border-color: #e2e8f0;
+  --border-focus: #3b82f6;
 
-  /* Tipografía Oscura Legible */
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
+  /* Tipografía */
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --text-subtle: #94a3b8;
 
-  /* Luces del Semáforo con Tonos Saturados */
-  --color-red: #dc2626;
-  --color-yellow: #d97706;
-  --color-green: #16a34a;
+  /* Semáforo & Estado */
+  --color-red: #ef4444;
+  --color-yellow: #f59e0b;
+  --color-green: #22c55e;
 
-  /* Acentos e Interacción */
-  --color-accent: #0284c7;
-  --color-button: #2563eb;
-  --color-button-red: #dc2626;
+  /* Botones e Interacciones */
+  --primary-blue: #2563eb;
+  --primary-blue-hover: #1d4ed8;
+  --danger-red: #dc2626;
+  --danger-red-hover: #b91c1c;
+
+  /* Sombras Modernas */
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.08);
+  --shadow-md: 0 4px 12px -2px rgba(15, 23, 42, 0.08), 0 2px 6px -2px rgba(15, 23, 42, 0.04);
+  --shadow-lg: 0 12px 28px -6px rgba(15, 23, 42, 0.12), 0 8px 12px -6px rgba(15, 23, 42, 0.06);
 }
 
 body {
   margin: 0;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background-color: var(--bg-main);
-  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background-color: var(--bg-page);
+  color: var(--text-main);
   min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
+/* Contenedor Principal Centrado */
 .app-container {
-  max-width: 850px;
+  width: 100%;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 40px 20px;
+  padding: 30px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-sizing: border-box;
 }
 
-/* Header */
+/* Header Centrado */
 .app-header {
   text-align: center;
-  margin-bottom: 35px;
+  margin-bottom: 28px;
 }
 
 .app-header h1 {
-  font-size: 2.2rem;
-  margin: 0 0 8px 0;
+  font-size: 2.1rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin: 0 0 6px 0;
   letter-spacing: -0.5px;
 }
 
 .app-header p {
-  color: var(--text-secondary);
+  color: var(--text-muted);
+  font-size: 0.98rem;
   margin: 0;
-  font-size: 1rem;
 }
 
-/* Metrics Grid */
-.metrics-grid {
+/* Layout Principal de 2 Columnas */
+.dashboard-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 15px;
-  background-color: var(--bg-card);
-  padding: 20px;
-  border-radius: 12px;
-  margin-bottom: 25px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+  grid-template-columns: 440px 1fr;
+  gap: 26px;
+  width: 100%;
+  align-items: stretch;
 }
 
-.metric-card {
-  text-align: center;
-}
-
-.metric-card label {
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-  display: block;
-  margin-bottom: 6px;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-}
-
-.metric-card value {
-  font-size: 1.3rem;
-  font-weight: 700;
-  display: block;
-}
-
-/* Traffic Light Component */
-.traffic-light-container {
+/* Columna Izquierda: Chatbot */
+.column-left {
   display: flex;
-  gap: 3rem;
-  justify-content: center;
-  margin: 30px 0;
+  flex-direction: column;
 }
 
-.light-box {
-  background: var(--bg-card);
-  padding: 20px;
-  border-radius: 16px;
-  text-align: center;
-  width: 150px;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
-}
-
-.light-box h4 {
-  margin: 0 0 15px 0;
-  font-size: 0.85rem;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  color: var(--text-secondary);
-}
-
-.light-circle {
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  margin: 10px auto;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  background-color: #334155;
-}
-
-.light-circle.red.active {
-  background-color: var(--color-red);
-  box-shadow: 0 0 25px var(--color-red);
-}
-
-.light-circle.yellow.active {
-  background-color: var(--color-yellow);
-  box-shadow: 0 0 25px var(--color-yellow);
-}
-
-.light-circle.green.active {
-  background-color: var(--color-green);
-  box-shadow: 0 0 25px var(--color-green);
-}
-
-/* Status Banner */
-.status-banner {
-  background-color: var(--bg-card-hover);
-  padding: 16px;
-  border-radius: 10px;
-  text-align: center;
-  margin: 20px 0;
-  font-weight: 500;
-  border-left: 4px solid var(--color-accent);
-}
-
-/* Control Panel Card */
-.control-card {
-  background-color: var(--bg-card);
-  padding: 25px;
-  border-radius: 12px;
-  margin-top: 25px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
-}
-
-.email-group {
-  margin-bottom: 20px;
+/* Columna Derecha: Controles y Semáforo */
+.column-right {
   display: flex;
-  gap: 12px;
-  align-items: center;
+  flex-direction: column;
+  gap: 18px;
 }
 
-.email-group label {
-  font-size: 0.9rem;
-  color: var(--text-secondary);
-  white-space: nowrap;
-}
-
-.email-input {
-  flex: 1;
-  padding: 10px 14px;
-  border-radius: 8px;
-  border: 1px solid #475569;
-  background-color: var(--bg-main);
-  color: var(--text-primary);
-  font-size: 0.95rem;
-  outline: none;
-}
-
-.email-input:focus {
-  border-color: var(--color-accent);
-}
-
-/* Buttons */
-.button-group {
-  display: flex;
-  gap: 15px;
-  justify-content: center;
-}
-
-.btn {
-  padding: 12px 22px;
-  border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  font-size: 0.95rem;
-  transition: transform 0.1s ease, filter 0.2s ease;
-}
-
-.btn:active {
-  transform: scale(0.98);
-}
-
-.btn-primary {
-  background-color: var(--color-button);
-  color: white;
-}
-
-.btn-danger {
-  background-color: var(--color-button-red);
-  color: white;
-}
-
-.btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-/* Chatbot */
+/* ===============================
+   CHATBOT CARD (COLUMNA IZQUIERDA)
+   =============================== */
 .chatbot-card {
   background-color: var(--bg-card);
-  margin-top: 25px;
-  border-radius: 12px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+  border-radius: 16px;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-md);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
   text-align: left;
 }
 
@@ -229,149 +112,405 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 20px 22px;
-  border-bottom: 1px solid #e2e8f0;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--border-color);
+  background: #ffffff;
 }
 
 .chatbot-header h2 {
-  margin: 0 0 4px;
+  margin: 0 0 3px 0;
   font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--text-main);
 }
 
 .chatbot-header p {
-  color: var(--text-secondary);
-  font-size: 0.85rem;
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--text-muted);
 }
 
 .chatbot-online {
-  color: var(--color-green);
-  font-size: 0.8rem;
-  font-weight: 700;
-  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  background-color: #ecfdf5;
+  color: #059669;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border: 1px solid #a7f3d0;
+}
+
+.chatbot-online::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: #10b981;
 }
 
 .chatbot-messages {
+  flex: 1;
+  min-height: 260px;
+  max-height: 380px;
+  overflow-y: auto;
+  padding: 18px 20px;
+  background-color: #f8fafc;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  max-height: 320px;
-  min-height: 140px;
-  overflow-y: auto;
-  padding: 18px 22px;
-  background: #f8fafc;
+  gap: 12px;
+  border-bottom: 1px solid var(--border-color);
 }
 
+.chat-message {
+  max-width: 82%;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.chat-message-asistente {
+  align-self: flex-start;
+  background-color: #ffffff;
+  color: var(--text-main);
+  border: 1px solid #e2e8f0;
+  box-shadow: var(--shadow-sm);
+  border-bottom-left-radius: 4px;
+}
+
+.chat-message-usuario {
+  align-self: flex-end;
+  background-color: var(--primary-blue);
+  color: #ffffff;
+  border-bottom-right-radius: 4px;
+}
+
+.chat-message-error {
+  align-self: flex-start;
+  background-color: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+  border-bottom-left-radius: 4px;
+}
+
+/* Configuración API Key */
 .chatbot-config {
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 12px;
-  padding: 16px 22px 0;
+  gap: 10px;
+  padding: 14px 20px 0;
+  background: #ffffff;
 }
 
 .chatbot-config label {
   display: flex;
   flex-direction: column;
   gap: 5px;
-  color: var(--text-secondary);
+  color: var(--text-muted);
   font-size: 0.8rem;
   font-weight: 600;
 }
 
-.chatbot-config select,
 .chatbot-config input {
   box-sizing: border-box;
   width: 100%;
-  padding: 9px 11px;
+  padding: 8px 12px;
   border: 1px solid #cbd5e1;
   border-radius: 8px;
-  background: var(--bg-main);
-  color: var(--text-primary);
-  font: inherit;
+  background-color: var(--bg-input);
+  color: var(--text-main);
+  font-size: 0.88rem;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.chatbot-config input:focus {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.chatbot-validate {
+  align-self: flex-end;
+  height: 36px;
+  padding: 0 14px;
+  font-size: 0.85rem;
 }
 
 .chatbot-config small {
   grid-column: 1 / -1;
-  color: var(--text-secondary);
-  font-size: 0.75rem;
-  font-weight: 400;
-}
-
-.btn-secondary {
-  background: #e2e8f0;
-  color: var(--text-primary);
-  border: 1px solid #cbd5e1;
-}
-
-.chatbot-validate {
-  align-self: end;
-  white-space: nowrap;
+  color: var(--text-muted);
+  font-size: 0.74rem;
+  margin-top: 2px;
 }
 
 .connection-status {
   grid-column: 1 / -1;
-  padding: 9px 12px;
+  padding: 7px 12px;
   border-radius: 8px;
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   font-weight: 600;
+  margin-top: 4px;
 }
 
 .connection-status.connected {
   color: #166534;
-  background: #dcfce7;
+  background-color: #dcfce7;
+  border: 1px solid #bbf7d0;
 }
 
 .connection-status.disconnected {
   color: #991b1b;
-  background: #fee2e2;
+  background-color: #fee2e2;
+  border: 1px solid #fecaca;
 }
 
-.chat-message {
-  max-width: 78%;
-  padding: 10px 14px;
-  border-radius: 12px;
-  line-height: 1.45;
-  white-space: pre-wrap;
-}
-
-.chat-message-asistente {
-  align-self: flex-start;
-  background: #e2e8f0;
-  color: var(--text-primary);
-}
-
-.chat-message-usuario {
-  align-self: flex-end;
-  background: var(--color-button);
-  color: white;
-}
-
-.chat-message-error {
-  align-self: flex-start;
-  background: #fee2e2;
-  color: #991b1b;
-}
-
+/* Formulario de Consulta */
 .chatbot-form {
   display: flex;
   gap: 10px;
-  padding: 16px 22px 20px;
+  padding: 14px 20px 18px;
+  background: #ffffff;
 }
 
 .chatbot-form input {
   flex: 1;
   min-width: 0;
-  padding: 11px 14px;
+  padding: 10px 14px;
   border: 1px solid #cbd5e1;
   border-radius: 8px;
-  background: var(--bg-main);
-  color: var(--text-primary);
-  font: inherit;
+  background-color: var(--bg-input);
+  color: var(--text-main);
+  font-size: 0.92rem;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .chatbot-form input:focus {
-  border-color: var(--color-accent);
-  outline: 2px solid rgba(2, 132, 199, 0.16);
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+/* ===============================
+   COLUMNA DERECHA: DASHBOARD & SEMÁFORO
+   =============================== */
+
+/* Tarjetas de Métricas */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  background-color: var(--bg-card);
+  padding: 16px 20px;
+  border-radius: 14px;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+}
+
+.metric-card {
+  text-align: center;
+}
+
+.metric-card label {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+}
+
+.metric-value {
+  font-size: 1.35rem;
+  font-weight: 700;
+  display: block;
+  line-height: 1.2;
+}
+
+/* Contenedor del Semáforo */
+.traffic-light-container {
+  display: flex;
+  gap: 28px;
+  justify-content: center;
+  align-items: center;
+  padding: 10px 0;
+}
+
+.light-box {
+  background: #1e293b;
+  padding: 20px 24px;
+  border-radius: 20px;
+  text-align: center;
+  width: 145px;
+  box-shadow: var(--shadow-lg);
+  border: 2px solid #334155;
+  box-sizing: border-box;
+}
+
+.light-box h4 {
+  margin: 0 0 14px 0;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: #94a3b8;
+  font-weight: 700;
+}
+
+.light-circle {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  margin: 12px auto;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  background-color: #0f172a;
+  border: 2px solid #334155;
+}
+
+.light-circle.red.active {
+  background-color: var(--color-red);
+  border-color: #f87171;
+  box-shadow: 0 0 24px var(--color-red), inset 0 0 8px #fca5a5;
+}
+
+.light-circle.yellow.active {
+  background-color: var(--color-yellow);
+  border-color: #fbbf24;
+  box-shadow: 0 0 24px var(--color-yellow), inset 0 0 8px #fde68a;
+}
+
+.light-circle.green.active {
+  background-color: var(--color-green);
+  border-color: #4ade80;
+  box-shadow: 0 0 24px var(--color-green), inset 0 0 8px #bbf7d0;
+}
+
+/* Botón Sensor Peatonal Centrado */
+.action-container {
+  display: flex;
+  justify-content: center;
+  margin: 4px 0;
+}
+
+.btn-sensor {
+  padding: 13px 26px;
+  font-size: 1rem;
+  font-weight: 600;
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);
+}
+
+/* Status Banner */
+.status-banner {
+  background-color: #eff6ff;
+  border-left: 4px solid var(--primary-blue);
+  color: #1e40af;
+  padding: 14px 18px;
+  border-radius: 10px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.92rem;
+  box-shadow: var(--shadow-sm);
+}
+
+/* Control Card: Alerta Email */
+.control-card {
+  background-color: var(--bg-card);
+  padding: 20px 24px;
+  border-radius: 14px;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.email-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.email-group label {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.email-input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background-color: var(--bg-input);
+  color: var(--text-main);
+  font-size: 0.92rem;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.email-input:focus {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+/* Botones Comunes */
+.button-group {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.92rem;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s, box-shadow 0.2s;
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+.btn-primary {
+  background-color: var(--primary-blue);
+  color: #ffffff;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: var(--primary-blue-hover);
+}
+
+.btn-danger {
+  background-color: var(--danger-red);
+  color: #ffffff;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background-color: var(--danger-red-hover);
+}
+
+.btn-secondary {
+  background-color: #f1f5f9;
+  color: var(--text-main);
+  border: 1px solid #cbd5e1;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: #e2e8f0;
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .sr-only {
@@ -386,20 +525,44 @@ body {
   border: 0;
 }
 
+/* ===============================
+   RESPONSIVE DESIGN (TABLETS / MÓVILES)
+   =============================== */
+@media (max-width: 980px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+    gap: 22px;
+  }
+
+  .app-container {
+    padding: 20px 14px;
+  }
+
+  .chatbot-card {
+    height: auto;
+  }
+}
+
 @media (max-width: 600px) {
+  .traffic-light-container {
+    gap: 16px;
+  }
+
+  .light-box {
+    width: 130px;
+    padding: 16px;
+  }
+
+  .metrics-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
   .chatbot-config {
     grid-template-columns: 1fr;
   }
 
-  .chatbot-config small {
-    grid-column: auto;
-  }
-
   .chatbot-form {
     flex-direction: column;
-  }
-
-  .chat-message {
-    max-width: 90%;
   }
 }

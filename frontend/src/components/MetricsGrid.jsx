@@ -2,17 +2,17 @@ export const MetricsGrid = ({ modo, tiempoRestante }) => (
   <div className="metrics-grid">
     <div className="metric-card">
       <label>MODO ACTUAL</label>
-      <value style={{ color: '#38bdf8' }}>{modo}</value>
+      <span className="metric-value" style={{ color: '#0284c7' }}>{modo}</span>
     </div>
     <div className="metric-card">
       <label>TEMPORIZADOR</label>
-      <value style={{ color: '#f59e0b' }}>{tiempoRestante}s</value>
+      <span className="metric-value" style={{ color: '#d97706' }}>{tiempoRestante}s</span>
     </div>
     <div className="metric-card">
       <label>SENSOR PIR</label>
-      <value style={{ color: modo === 'COOLDOWN' ? '#ef4444' : '#22c55e' }}>
+      <span className="metric-value" style={{ color: modo === 'COOLDOWN' ? '#dc2626' : '#16a34a' }}>
         {modo === 'COOLDOWN' ? 'BLOQUEADO' : 'ACTIVO'}
-      </value>
+      </span>
     </div>
   </div>
 );
