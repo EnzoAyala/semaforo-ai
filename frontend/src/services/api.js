@@ -68,5 +68,31 @@ export const semaforoService = {
       throw new Error(mensaje);
     }
     return await res.json();
+  },
+
+  // Transcribir audio de voz usando Gemini Flash en el backend
+  async transcribirAudio(audioBlob, apiKey) {
+    const formData = new FormData();
+    formData.append('audio', audioBlob, 'audio.webm');
+    if (apiKey) {
+      formData.append('api_key', apiKey.trim());
+    }
+
+    const res = await fetch(`${API_BASE_URL}/chatbot/transcribir`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!res.ok) {
+      let mensaje = 'No se pudo transcribir el audio';
+      try {
+        const error = await res.json();
+        if (error.detail) mensaje = error.detail;
+      } catch {
+        // Conserva el mensaje genérico si la API no responde con JSON.
+      }
+      throw new Error(mensaje);
+    }
+    return await res.json();
   }
 };

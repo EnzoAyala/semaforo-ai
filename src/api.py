@@ -2,7 +2,7 @@
 Servidor API REST (FastAPI) para conectar el Backend con el Frontend en React.
 """
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
@@ -14,6 +14,7 @@ from src.ai_assistant import (
     ServicioIAError,
     responder_consulta,
     validar_conexion,
+    transcribir_audio_gemini,
 )
 
 app = FastAPI(title="SemaforoIA API", version="2.0.0")
@@ -142,3 +143,36 @@ def validar_api_key(datos: SolicitudValidacionIA):
         "proveedor": proveedor,
         "modelo": modelo,
     }
+
+
+@app.post("/api/chatbot/transcribir")
+async def transcribir_audio(
+    audio: UploadFile = File(...),
+    api_key: Optional[str] = Form(None),
+):
+    """Transcribe un archivo de audio del usuario usando Gemini Flash."""
+    contenido = await audio.read()
+    if not contenido:
+        raise HTTPException(status_code=422, detail="El archivo de audio está vacío")
+    if len(contenido) > 15 * 1024 * 1024:
+        raise HTTPException(
+            status_code=422, detail="El archivo de audio supera los 15 MB permitidos"
+        )
+    if api_key and len(api_key) > 2048:
+        raise HTTPException(status_code=422, detail="La API key no es válida")
+
+    mime = audio.content_type or "audio/webm"
+    try:
+        texto = transcribir_audio_gemini(
+            audio_bytes=contenido,
+            mime_type=mime,
+            api_key=api_key,
+        )
+    except ConfiguracionIAError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except ServicioIAError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    return {"texto": texto}

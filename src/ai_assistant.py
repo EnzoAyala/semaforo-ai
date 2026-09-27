@@ -1,4 +1,4 @@
-"""Asistente conversacional de SemaforoIA integrado con Groq."""
+"""Asistente conversacional de SemaforoIA integrado con Groq y Google Gemini."""
 
 import json
 import os
@@ -15,7 +15,7 @@ class ConfiguracionIAError(RuntimeError):
 
 
 class ServicioIAError(RuntimeError):
-    """Groq no pudo generar una respuesta válida."""
+    """El servicio de IA no pudo generar una respuesta válida."""
 
 
 def _crear_cliente_groq(api_key: Optional[str] = None):
@@ -75,7 +75,7 @@ def _crear_cliente_gemini(
 def _generar_gemini(
     api_key: Optional[str],
     modelo: str,
-    contenido: str,
+    contenido: Any,
     cliente: Optional[Any] = None,
 ):
     """Prueba Gemini Developer API y, para claves AQ, Vertex AI Express."""
@@ -268,3 +268,63 @@ def validar_conexion(proveedor: str, api_key: str) -> str:
         raise ServicioIAError(mensaje) from exc
 
     return modelo
+
+
+def transcribir_audio_gemini(
+    audio_bytes: bytes,
+    mime_type: str = "audio/webm",
+    api_key: Optional[str] = None,
+    cliente: Optional[Any] = None,
+) -> str:
+    """
+    Transcribe un archivo de audio usando el modelo multimodal Gemini Flash.
+
+    ``cliente`` permite inyectar un cliente de prueba sin llamar a la API real.
+    """
+    if not audio_bytes:
+        raise ValueError("El archivo de audio está vacío.")
+
+    clave = api_key or os.getenv("GEMINI_API_KEY")
+    if not clave and cliente is None:
+        raise ConfiguracionIAError(
+            "Ingresa una API key de Gemini o configura GEMINI_API_KEY."
+        )
+
+    try:
+        from google.genai import types
+    except ImportError as exc:
+        raise ConfiguracionIAError(
+            "El SDK de Gemini no está instalado. Ejecuta: pip install -r requirements.txt"
+        ) from exc
+
+    mime = mime_type.split(";")[0].strip().lower() if mime_type else "audio/webm"
+    if not mime or mime == "application/octet-stream":
+        mime = "audio/webm"
+
+    audio_part = types.Part.from_bytes(data=audio_bytes, mime_type=mime)
+    instruccion = (
+        "Transcribe textualmente y en español exactamente lo que se dice en este audio. "
+        "Devuelve únicamente el texto transcrito, sin explicaciones, sin comillas, "
+        "sin formato Markdown ni notas adicionales."
+    )
+
+    modelo = os.getenv("GEMINI_MODEL", MODELO_GEMINI_DEFAULT)
+
+    try:
+        completion = _generar_gemini(
+            api_key=clave,
+            modelo=modelo,
+            contenido=[audio_part, instruccion],
+            cliente=cliente,
+        )
+        texto = completion.text
+    except (ConfiguracionIAError, ValueError):
+        raise
+    except Exception as exc:
+        mensaje = _describir_error_proveedor("gemini", exc, clave or "", modelo)
+        raise ServicioIAError(mensaje) from exc
+
+    if not texto or not texto.strip():
+        raise ServicioIAError("Gemini no detectó texto o devolvió una transcripción vacía.")
+
+    return texto.strip()
