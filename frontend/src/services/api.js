@@ -1,7 +1,10 @@
-const API_BASE_URL = 'http://localhost:8000/api';
+// Detecta si se ingresó por localhost, 192.168.x.x o 26.x.x.x
+const HOST = window.location.hostname || 'localhost';
+
+export const API_BASE_URL = `http://${HOST}:8000/api`;
+export const WS_URL = `ws://${HOST}:8000/ws/estado`;
 
 export const semaforoService = {
-  // Obtener estado real desde el backend
   async obtenerEstado() {
     try {
       const res = await fetch(`${API_BASE_URL}/estado`);
@@ -13,7 +16,6 @@ export const semaforoService = {
     }
   },
 
-  // Enviar solicitud de peaton al backend
   async solicitarCruce(tiempoActual = null) {
     try {
       const res = await fetch(`${API_BASE_URL}/solicitar-cruce`, {
@@ -29,7 +31,6 @@ export const semaforoService = {
     }
   },
 
-  // Enviar correo de alerta real (Tu módulo Enzo)
   async enviarAlertaEmail(correo, asunto, mensajeAdicional = "") {
     try {
       const res = await fetch(`${API_BASE_URL}/enviar-alerta`, {
@@ -49,7 +50,6 @@ export const semaforoService = {
     }
   },
 
-  // Consultar al asistente; el backend añade el estado actual del semáforo.
   async consultarChatbot(consulta, apiKey) {
     const res = await fetch(`${API_BASE_URL}/chatbot`, {
       method: 'POST',
@@ -63,14 +63,13 @@ export const semaforoService = {
         const error = await res.json();
         if (error.detail) mensaje = error.detail;
       } catch {
-        // Conserva el mensaje genérico si la API no responde con JSON.
+        // Mantiene el mensaje predeterminado
       }
       throw new Error(mensaje);
     }
     return await res.json();
   },
 
-  // Transcribir audio de voz usando Gemini Flash en el backend
   async transcribirAudio(audioBlob, apiKey) {
     const formData = new FormData();
     formData.append('audio', audioBlob, 'audio.webm');
@@ -89,7 +88,7 @@ export const semaforoService = {
         const error = await res.json();
         if (error.detail) mensaje = error.detail;
       } catch {
-        // Conserva el mensaje genérico si la API no responde con JSON.
+        // Mantiene el mensaje predeterminado
       }
       throw new Error(mensaje);
     }

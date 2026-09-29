@@ -1,11 +1,13 @@
 """
-Servidor API REST (FastAPI) para conectar el Backend con el Frontend en React.
+Servidor API REST y WebSockets (FastAPI) para SemaforoIA.
+Sincronización en tiempo real multi-dispositivo en la red local.
 """
 
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form
+import asyncio
+from typing import List, Optional
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Optional
 
 from src.logic import SemaforoInteligente
 from src.automation import enviar_correo_alerta
@@ -19,7 +21,7 @@ from src.ai_assistant import (
 
 app = FastAPI(title="SemaforoIA API", version="2.0.0")
 
-# Configuración nativa de CORS para comunicarse con React en http://localhost:5173
+# Habilitar CORS para cualquier origen en la red local
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -28,10 +30,64 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Instancia global del semáforo inteligente
 semaforo = SemaforoInteligente(duracion_rojo=60.0, duracion_cooldown=120.0)
 
 
+# -----------------------------------------------------------------------------
+# Gestor de WebSockets para Múltiples Dispositivos en Red Local
+# -----------------------------------------------------------------------------
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        if websocket in self.active_connections:
+            self.active_connections.remove(websocket)
+
+    async def broadcast(self, message: dict):
+        for connection in list(self.active_connections):
+            try:
+                await connection.send_json(message)
+            except Exception:
+                self.disconnect(connection)
+
+
+manager = ConnectionManager()
+
+
+# Bucle en segundo plano que emite el estado del semáforo en tiempo real a todos los clientes
+async def bucle_transmision_estado():
+    while True:
+        resumen = semaforo.obtener_resumen()
+        await manager.broadcast(resumen)
+        await asyncio.sleep(1)
+
+
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(bucle_transmision_estado())
+
+
+@app.websocket("/ws/estado")
+async def websocket_endpoint(websocket: WebSocket):
+    await manager.connect(websocket)
+    # Enviar estado inicial inmediatamente tras conectar
+    await websocket.send_json(semaforo.obtener_resumen())
+    try:
+        while True:
+            # Mantiene la conexión abierta escuchando mensajes si fuera necesario
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
+
+
+# -----------------------------------------------------------------------------
+# Endpoints REST Existentes
+# -----------------------------------------------------------------------------
 class SolicitudPeaton(BaseModel):
     tiempo_actual: Optional[float] = None
 
@@ -55,15 +111,15 @@ class SolicitudValidacionIA(BaseModel):
 
 @app.get("/api/estado")
 def obtener_estado():
-    """Retorna el estado actual del semáforo."""
     return semaforo.obtener_resumen()
 
 
 @app.post("/api/solicitar-cruce")
-def solicitar_cruce(datos: SolicitudPeaton):
-    """Simula la activación del sensor PIR."""
+async def solicitar_cruce(datos: SolicitudPeaton):
     aceptado = semaforo.solicitar_cruce(datos.tiempo_actual)
     resumen = semaforo.obtener_resumen(datos.tiempo_actual)
+    # Transmitir el cambio inmediatamente a todos los dispositivos conectados
+    await manager.broadcast(resumen)
     return {
         "solicitud_aceptada": aceptado,
         "resumen": resumen
@@ -72,7 +128,6 @@ def solicitar_cruce(datos: SolicitudPeaton):
 
 @app.post("/api/enviar-alerta")
 def enviar_alerta(datos: SolicitudEmail):
-    """Ejecuta el módulo de envío de correo automático."""
     resumen = semaforo.obtener_resumen()
     exito = enviar_correo_alerta(
         destinatario=datos.destinatario,
@@ -87,7 +142,6 @@ def enviar_alerta(datos: SolicitudEmail):
 
 @app.post("/api/chatbot")
 def consultar_chatbot(datos: SolicitudChatbot):
-    """Responde al usuario inyectando el estado actual del semáforo."""
     consulta = datos.consulta.strip()
     if not consulta:
         raise HTTPException(status_code=422, detail="La consulta no puede estar vacía")
@@ -120,7 +174,6 @@ def consultar_chatbot(datos: SolicitudChatbot):
 
 @app.post("/api/chatbot/validar")
 def validar_api_key(datos: SolicitudValidacionIA):
-    """Valida una clave contra el proveedor sin almacenarla en el servidor."""
     proveedor = datos.proveedor.strip().lower()
     if proveedor not in {"gemini", "groq", "xai"}:
         raise HTTPException(status_code=422, detail="Proveedor de IA no compatible")
@@ -150,7 +203,6 @@ async def transcribir_audio(
     audio: UploadFile = File(...),
     api_key: Optional[str] = Form(None),
 ):
-    """Transcribe un archivo de audio del usuario usando Gemini Flash."""
     contenido = await audio.read()
     if not contenido:
         raise HTTPException(status_code=422, detail="El archivo de audio está vacío")
@@ -176,3 +228,17 @@ async def transcribir_audio(
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
     return {"texto": texto}
+
+@app.websocket("/ws/estado")
+async def websocket_endpoint(websocket: WebSocket):
+    await manager.connect(websocket)
+    try:
+        # Enviar estado inmediatamente al conectar
+        await websocket.send_json(semaforo.obtener_resumen())
+        while True:
+            # Mantener la conexión abierta
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
+    except Exception:
+        manager.disconnect(websocket)
