@@ -30,7 +30,7 @@ Diagrama de referencia:
 | 10 | Buzzer (módulo) | VCC | rail 5V | Rojo |
 | 11 | Sem. vehicular | R | **D5** | Rojo señal |
 | 12 | Sem. vehicular | Y | **D6** | Amarillo |
-| 13 | Sem. vehicular | G | **D7** | Verde |
+| 13 | Sem. vehicular | G | **D10** | Verde |
 | 14 | Sem. vehicular | GND | rail GND | Negro |
 | 15 | Sem. peatonal | R | **D8** | Rojo señal |
 | 16 | Sem. peatonal | G | **D9** | Verde |
@@ -73,7 +73,7 @@ Diagrama de referencia:
 
 ### Paso 5 — Semáforo vehicular
 
-1. R→**D5**, Y→**D6**, G→**D7**, GND→rail GND.
+1. R→**D5**, Y→**D6**, G→**D10**, GND→rail GND.
 2. Si no trae resistencias y los LEDs brillan en exceso, añade 220 Ω en serie.
 
 ### Paso 6 — Semáforo peatonal

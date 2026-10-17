@@ -20,7 +20,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
 
 
-DEFAULT_DATABASE_URL = "postgresql+psycopg://semaforo:semaforo@localhost:5432/semaforo_ia"
+DEFAULT_DATABASE_URL = "postgresql+psycopg://postgres:user@localhost:5432/semaforo"
 
 
 class Base(DeclarativeBase):

@@ -10,7 +10,7 @@ const int PIN_BUTTON = 3;
 const int PIN_BUZZER = 4;
 const int PIN_VEH_R = 5;
 const int PIN_VEH_Y = 6;
-const int PIN_VEH_G = 7;
+const int PIN_VEH_G = 10;
 const int PIN_PEA_R = 8;
 const int PIN_PEA_G = 9;
 

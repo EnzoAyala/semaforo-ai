@@ -1,18 +1,14 @@
 /*
  * SemaforoIA — Firmware principal (Arduino Uno)
- * Captura PIR/pulsador por Serial JSON y aplica comandos de luces/buzzer.
  * Baudios: 115200
  *
- * Si en REPOSO ves ROJO en vez de VERDE en el semáforo vehicular:
- *   pon SWAP_VEH_RG en 1, vuelve a subir este sketch.
- *
- * Si los LEDs se comportan al revés (se apagan cuando deberían encenderse):
- *   pon LED_ACTIVE_LOW en 1.
+ * Pines vehicular: R=D5, Y=D6, G=D10  (verde en D10; si antes usabas D7, mueve el cable)
+ * Si en REPOSO ves ROJO en vez de VERDE: pon SWAP_VEH_RG = 1
+ * Si los LEDs se invierten: pon LED_ACTIVE_LOW = 1
  */
 
-// --- Ajustes de hardware (cámbialos si hace falta) ---
-const int SWAP_VEH_RG = 0;      // 1 = intercambia rojo/verde vehicular
-const int LED_ACTIVE_LOW = 0;   // 1 = módulos common-anode (activo en LOW)
+const int SWAP_VEH_RG = 0;
+const int LED_ACTIVE_LOW = 0;
 const int BUZZER_ACTIVE_LOW = 0;
 
 const int PIN_PIR = 2;
@@ -20,32 +16,33 @@ const int PIN_BUTTON = 3;
 const int PIN_BUZZER = 4;
 const int PIN_VEH_R = 5;
 const int PIN_VEH_Y = 6;
-const int PIN_VEH_G = 7;
+const int PIN_VEH_G = 10;  // verde vehicular (antes D7)
 const int PIN_PEA_R = 8;
 const int PIN_PEA_G = 9;
 
 const unsigned long DEBOUNCE_MS = 50;
 const unsigned long PIR_STABLE_MS = 80;
-const unsigned long BOOT_IGNORE_MS = 5000;   // ignora sensores tras reset/USB
-const unsigned long EVENT_COOLDOWN_MS = 3000; // no reenviar PIR/botón tan seguido
+const unsigned long BOOT_IGNORE_MS = 5000;
+const unsigned long EVENT_COOLDOWN_MS = 3000;
 const unsigned long HEARTBEAT_MS = 2000;
 const unsigned long COMMAND_TIMEOUT_MS = 8000;
+const unsigned long BEEP_MS = 220;
 
 String serialBuffer = "";
 unsigned long lastHeartbeat = 0;
 unsigned long lastCommandMs = 0;
 unsigned long lastEventMs = 0;
 unsigned long bootMs = 0;
+unsigned long beepUntil = 0;
 
 int lastPir = LOW;
-int pirHighSince = 0;
+unsigned long pirHighSince = 0;
 int lastButtonStable = HIGH;
 int lastButtonReading = HIGH;
 unsigned long lastButtonChangeMs = 0;
 
 String currentVeh = "VERDE";
 String currentPea = "ROJO";
-int currentBuzzer = 0;
 
 int ledLevel(bool on) {
   if (LED_ACTIVE_LOW) {
@@ -80,17 +77,15 @@ void escribirPeatonal(bool rojo, bool verde) {
   digitalWrite(PIN_PEA_G, ledLevel(verde));
 }
 
-void aplicarLuces(const String& veh, const String& pea, int buzzer) {
+void aplicarLuces(const String& veh, const String& pea) {
   currentVeh = veh;
   currentPea = pea;
-  currentBuzzer = buzzer;
 
   if (veh == "ROJO") {
     escribirVehicular(true, false, false);
   } else if (veh == "AMARILLO") {
     escribirVehicular(false, true, false);
   } else {
-    // VERDE (o valor desconocido → estado seguro)
     escribirVehicular(false, false, true);
   }
 
@@ -99,12 +94,22 @@ void aplicarLuces(const String& veh, const String& pea, int buzzer) {
   } else {
     escribirPeatonal(true, false);
   }
-
-  digitalWrite(PIN_BUZZER, buzzerLevel(buzzer != 0));
 }
 
 void estadoSeguro() {
-  aplicarLuces("VERDE", "ROJO", 0);
+  aplicarLuces("VERDE", "ROJO");
+}
+
+void pitidoDeteccion() {
+  digitalWrite(PIN_BUZZER, buzzerLevel(true));
+  beepUntil = millis() + BEEP_MS;
+}
+
+void actualizarBuzzer() {
+  if (beepUntil != 0 && millis() >= beepUntil) {
+    digitalWrite(PIN_BUZZER, buzzerLevel(false));
+    beepUntil = 0;
+  }
 }
 
 bool sensoresHabilitados() {
@@ -119,6 +124,7 @@ void emitirEvento(const char* source) {
     return;
   }
   lastEventMs = millis();
+  pitidoDeteccion();  // solo suena al detectar PIR o botón
   Serial.print(F("{\"type\":\"event\",\"source\":\""));
   Serial.print(source);
   Serial.print(F("\",\"ts\":"));
@@ -163,20 +169,17 @@ String extraerCampo(const String& json, const char* key) {
 }
 
 void procesarComando(const String& line) {
-  // Ignora telemetría propia u otros JSON sin comando de luces
   if (line.indexOf("\"veh\"") < 0 || line.indexOf("\"pea\"") < 0) {
     return;
   }
   String veh = extraerCampo(line, "veh");
   String pea = extraerCampo(line, "pea");
-  String buzzerRaw = extraerCampo(line, "buzzer");
   if (veh.length() == 0 || pea.length() == 0) {
     return;
   }
   veh.toUpperCase();
   pea.toUpperCase();
-  int buzzer = buzzerRaw.toInt();
-  aplicarLuces(veh, pea, buzzer);
+  aplicarLuces(veh, pea);  // el buzzer ya no lo controla la API
   lastCommandMs = millis();
 }
 
@@ -208,11 +211,11 @@ void leerSensores() {
 
   int pir = digitalRead(PIN_PIR);
   if (pir == HIGH && lastPir == LOW) {
-    pirHighSince = millis(); // posible flanco de subida
+    pirHighSince = millis();
   }
   if (pir == HIGH && pirHighSince > 0 && (millis() - pirHighSince) >= PIR_STABLE_MS) {
     emitirEvento("pir");
-    pirHighSince = 0; // un evento hasta que el PIR baje
+    pirHighSince = 0;
   }
   if (pir == LOW) {
     pirHighSince = 0;
@@ -251,6 +254,7 @@ void setup() {
   bootMs = millis();
   lastCommandMs = millis();
   lastEventMs = 0;
+  beepUntil = 0;
 
   Serial.println(F("{\"type\":\"boot\",\"device\":\"semaforo_ia\"}"));
 }
@@ -258,13 +262,13 @@ void setup() {
 void loop() {
   leerSerial();
   leerSensores();
+  actualizarBuzzer();
 
   if (millis() - lastHeartbeat >= HEARTBEAT_MS) {
     emitirHeartbeat();
     lastHeartbeat = millis();
   }
 
-  // Solo vuelve a seguro si el bridge dejó de mandar comandos
   if (millis() - lastCommandMs >= COMMAND_TIMEOUT_MS) {
     estadoSeguro();
     lastCommandMs = millis();

@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory = $true, Position = 0)]
-    [ValidateSet('app', 'test', 'api', 'bridge', 'compose')]
+    [ValidateSet('app', 'test', 'api', 'bridge', 'compose', 'start')]
     [string]$Mode,
 
     [Parameter(ValueFromRemainingArguments = $true)]
@@ -30,6 +30,9 @@ try {
         }
         'compose' {
             & docker compose up --build @CommandArgs
+        }
+        'start' {
+            & powershell -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'start.ps1') @CommandArgs
         }
     }
 

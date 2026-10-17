@@ -46,12 +46,10 @@ def http_json(method: str, path: str, payload: Optional[dict] = None) -> Dict[st
 
 
 def comando_desde_estado(estado: Dict[str, Any]) -> Dict[str, Any]:
-    modo = estado.get("modo", "REPOSO")
     veh = estado.get("luz_vehicular", "VERDE")
     pea = estado.get("luz_peatonal", "ROJO")
-    # Buzzer solo en fase peatonal (evita ruido continuo en amarillo)
-    buzzer = 1 if modo == "FASE_PEATONAL" else 0
-    return {"veh": veh, "pea": pea, "buzzer": buzzer}
+    # El pitido lo hace el Arduino solo al detectar PIR/botón
+    return {"veh": veh, "pea": pea, "buzzer": 0}
 
 
 _last_event_at = 0.0

@@ -291,10 +291,18 @@ Servicios:
 - Frontend: http://localhost:5173
 - PostgreSQL: localhost:5432 (`semaforo` / `semaforo` / DB `semaforo_ia`)
 
-El **bridge serial no corre en Docker** (necesita el USB del PC):
+### Un solo comando (Docker + bridge)
+
+Con Docker Desktop abierto y el Arduino en el COM del `.env`:
 
 ```powershell
-$env:SERIAL_PORT="COM3"
+.\scripts\start.ps1
+```
+
+El **bridge serial no corre en Docker** (necesita el USB del PC). Manual:
+
+```powershell
+$env:SERIAL_PORT="COM5"
 $env:API_BASE_URL="http://localhost:8000"
 .\scripts\run.ps1 bridge
 ```

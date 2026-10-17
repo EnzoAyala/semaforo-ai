@@ -2,16 +2,16 @@ services:
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: semaforo
-      POSTGRES_PASSWORD: semaforo
-      POSTGRES_DB: semaforo_ia
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-user}
+      POSTGRES_DB: ${POSTGRES_DB:-semaforo}
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U semaforo -d semaforo_ia"]
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -21,10 +21,13 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    env_file:
+      - .env
     environment:
-      DATABASE_URL: postgresql+psycopg://semaforo:semaforo@db:5432/semaforo_ia
+      # Dentro de Docker el host de Postgres es el servicio "db", no localhost
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-user}@db:5432/${POSTGRES_DB:-semaforo}
     ports:
-      - "8000:8000"
+      - "${API_PORT:-8000}:8000"
     restart: unless-stopped
 
   frontend:
@@ -34,7 +37,7 @@ services:
     depends_on:
       - api
     ports:
-      - "5173:80"
+      - "${FRONTEND_PORT:-5173}:80"
     restart: unless-stopped
 
 volumes:
