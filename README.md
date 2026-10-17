@@ -93,65 +93,43 @@ stateDiagram-v2
 
 ## 3. 🏗️ Arquitectura del Proyecto
 
-El proyecto utiliza una arquitectura dividida en **Frontend, Backend y componentes de automatización**, permitiendo separar la interfaz visual de la lógica principal del sistema.
+Flujo IoT real:
+
+```text
+PIR + Pulsador → Arduino Uno → USB Serial JSON → bridge_serial.py
+                                                      ↓ HTTP
+                                              FastAPI + PostgreSQL
+                                                      ↓ WebSocket
+                                              Dashboard React (luces + historial)
+                                                      ↓ comandos serial
+                                              Luces + Buzzer en Arduino
+```
 
 ```text
 semaforo-ai/
-│
-├── .github/
-│   └── workflows/
-│       └── ci.yml
-│           # Pipeline CI/CD con GitHub Actions
-│
-├── frontend/
-│   ├── src/
-│   │   ├── components/
-│   │   │   # Componentes visuales reutilizables
-│   │   │
-│   │   ├── hooks/
-│   │   │   # Custom Hook useSemaforo.js
-│   │   │
-│   │   ├── services/
-│   │   │   # Cliente HTTP para comunicación con la API
-│   │   │
-│   │   ├── App.jsx
-│   │   │   # Aplicación principal
-│   │   │
-│   │   └── App.css
-│   │       # Estilos del dashboard
-│   │
-│   └── package.json
-│       # Dependencias del Frontend
-│
+├── arduino/                 # Firmware .ino (prueba_pines + semaforo_ia)
+├── hardware/                # Guía de montaje y diagrama de cableado
+├── db/init.sql              # Esquema PostgreSQL
+├── docker-compose.yml       # postgres + api + frontend
+├── frontend/                # Dashboard React + Vite
 ├── src/
-│   ├── api.py
-│   │   # API REST desarrollada con FastAPI
-│   │
-│   ├── automation.py
-│   │   # Automatización de correos mediante SMTP
-│   │
-│   ├── logic.py
-│   │   # Máquina de estados finitos del semáforo
-│   │
-│   └── app.py
-│       # Simulación interactiva del sistema
-│
-├── tests/
-│   ├── test_logic.py
-│   │   # Pruebas unitarias de la lógica FSM
-│   │
-│   └── test_automation.py
-│       # Pruebas del módulo de automatización
-│
-├── Dockerfile
-│   # Configuración para ejecutar la aplicación en Docker
-│
-├── requirements.txt
-│   # Dependencias del Backend
-│
-└── README.md
-    # Documentación del proyecto
+│   ├── api.py               # REST + WebSocket + ingest sensor
+│   ├── bridge_serial.py     # Bridge USB ↔ HTTP (corre en el PC)
+│   ├── storage.py           # Persistencia PostgreSQL
+│   ├── logic.py             # FSM del semáforo
+│   ├── automation.py        # SMTP
+│   └── ai_assistant.py      # Chatbot
+└── tests/
 ```
+
+### Checklist de requisitos IoT
+
+1. **Captura** — PIR y pulsador en Arduino Uno (`arduino/semaforo_ia`).
+2. **Transmisión** — USB Serial → `python -m src.bridge_serial` → HTTP.
+3. **Recepción y almacenamiento** — FastAPI + PostgreSQL en Docker Compose.
+4. **Visualización** — panel en vivo + historial/gráficos en el dashboard.
+
+Guía de cableado: [hardware/MONTAJE.md](hardware/MONTAJE.md).
 
 ---
 
@@ -159,16 +137,17 @@ semaforo-ai/
 
 | Tecnología         | Uso                                         |
 | ------------------ | ------------------------------------------- |
-| **Python 3.11**    | Desarrollo del Backend y lógica del sistema |
-| **FastAPI**        | Creación de la API REST                     |
-| **React 18**       | Desarrollo de la interfaz web               |
+| **Python 3.11**    | Backend, bridge serial y lógica FSM         |
+| **FastAPI**        | API REST + WebSocket                        |
+| **PostgreSQL 16**  | Almacenamiento de eventos e historial       |
+| **React 19**       | Dashboard web                               |
 | **Vite**           | Herramienta de desarrollo del Frontend      |
+| **Arduino Uno**    | Captura PIR/botón y actuación de luces      |
 | **Pytest**         | Pruebas unitarias                           |
 | **Bandit**         | Análisis estático de seguridad              |
-| **Docker**         | Contenerización de la aplicación            |
-| **GitHub Actions** | Automatización del pipeline CI/CD           |
-| **SMTP**           | Envío de notificaciones por correo          |
-| **PIR / Arduino**  | Detección de movimiento                     |
+| **Docker Compose** | Contenedores api + db + frontend            |
+| **GitHub Actions** | Pipeline CI/CD                              |
+| **SMTP**           | Notificaciones por correo                   |
 
 ---
 
@@ -300,19 +279,29 @@ Total potential issues: 0
 
 ---
 
-### 🐳 6.3 Docker
-
-Construir la imagen:
+### 🐳 6.3 Docker Compose (API + PostgreSQL + Frontend)
 
 ```bash
-docker build -t semaforo-ia:latest .
+docker compose up --build
 ```
 
-Ejecutar el contenedor:
+Servicios:
 
-```bash
-docker run --rm -p 8000:8000 semaforo-ia:latest
+- API: http://localhost:8000
+- Frontend: http://localhost:5173
+- PostgreSQL: localhost:5432 (`semaforo` / `semaforo` / DB `semaforo_ia`)
+
+El **bridge serial no corre en Docker** (necesita el USB del PC):
+
+```powershell
+$env:SERIAL_PORT="COM3"
+$env:API_BASE_URL="http://localhost:8000"
+.\scripts\run.ps1 bridge
 ```
+
+Montaje físico y pines: ver [hardware/MONTAJE.md](hardware/MONTAJE.md).
+
+Firmware: subir `arduino/semaforo_ia/semaforo_ia.ino` (115200 baudios).
 
 ---
 

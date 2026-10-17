@@ -33,10 +33,10 @@ jobs:
       - name: Ejecutar análisis de seguridad de código
         run: bandit -r src
 
-      - name: Construir y ejecutar contenedor Docker
+      - name: Construir imagen API y servicios Compose
         run: |
           docker build -t semaforo-ia:latest .
-          docker run --rm semaforo-ia:latest
+          docker compose build
 
       - name: Despliegue simulado
         run: echo "Despliegue simulado realizado con éxito"

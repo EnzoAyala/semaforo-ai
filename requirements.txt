@@ -6,3 +6,7 @@ groq
 openai
 google-genai
 python-multipart
+pyserial
+sqlalchemy
+psycopg[binary]
+httpx
