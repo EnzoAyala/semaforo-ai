@@ -10,11 +10,22 @@ import { AssistDrawer } from './components/AssistDrawer';
 import { HistoryModal } from './components/HistoryModal';
 import { semaforoService } from './services/api';
 
+const THEME_KEY = 'semaforoia-theme';
+
 export function App() {
   const { estado, mensaje, setMensaje, solicitarCruce } = useSemaforo();
   const [assistOpen, setAssistOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [bridgeOk, setBridgeOk] = useState(false);
+  const [theme, setTheme] = useState(() => {
+    const saved = localStorage.getItem(THEME_KEY);
+    return saved === 'light' || saved === 'dark' ? saved : 'dark';
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem(THEME_KEY, theme);
+  }, [theme]);
 
   useEffect(() => {
     let alive = true;
@@ -31,13 +42,15 @@ export function App() {
   }, []);
 
   return (
-    <div className="stage">
+    <div className="stage" data-theme={theme}>
       <div className="stage-glow" aria-hidden="true" />
 
       <Header
         modo={estado.modo}
         tiempoRestante={estado.tiempo_restante_seg}
         bridgeOk={bridgeOk}
+        theme={theme}
+        onToggleTheme={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
       />
 
       <main className="stage-main">

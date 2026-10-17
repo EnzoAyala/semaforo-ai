@@ -11,56 +11,97 @@ function formatearFecha(iso) {
   }
 }
 
-function horaLabel(iso) {
-  try {
-    const d = new Date(iso);
-    return `${String(d.getHours()).padStart(2, '0')}:00`;
-  } catch {
-    return '?';
-  }
+function horaLabelFromDate(d) {
+  return `${String(d.getHours()).padStart(2, '0')}:00`;
 }
 
-/** Gráfico de área: eventos por hora (mejor para ver el flujo temporal IoT). */
-function AreaChart({ puntos }) {
-  const width = 560;
-  const height = 180;
-  const pad = 28;
+/** Area chart: sube con mas cruces peatonales (luz peatonal verde). */
+function AreaChart({ puntos, yLabel = 'Cruces' }) {
+  const width = 640;
+  const height = 220;
+  const padL = 44;
+  const padR = 16;
+  const padT = 24;
+  const padB = 32;
+
   if (!puntos.length) {
-    return <p className="history-empty">Aún no hay eventos para graficar.</p>;
+    return <p className="history-empty">Aún no hay actividad peatonal para graficar.</p>;
   }
 
   const maxY = Math.max(1, ...puntos.map((p) => p.y));
-  const innerW = width - pad * 2;
-  const innerH = height - pad * 2;
+  const ticks = [0, Math.ceil(maxY / 2), maxY].filter(
+    (v, i, arr) => arr.indexOf(v) === i
+  );
+  const innerW = width - padL - padR;
+  const innerH = height - padT - padB;
+  const baseY = padT + innerH;
 
   const coords = puntos.map((p, i) => {
-    const x = pad + (puntos.length === 1 ? innerW / 2 : (i / (puntos.length - 1)) * innerW);
-    const y = pad + innerH - (p.y / maxY) * innerH;
+    const x = padL + (puntos.length === 1 ? innerW / 2 : (i / (puntos.length - 1)) * innerW);
+    // SVG: y crece hacia abajo → restamos para que mas actividad suba
+    const y = baseY - (p.y / maxY) * innerH;
     return { x, y, ...p };
   });
 
   const line = coords.map((c, i) => `${i === 0 ? 'M' : 'L'}${c.x},${c.y}`).join(' ');
-  const area = `${line} L${coords[coords.length - 1].x},${pad + innerH} L${coords[0].x},${pad + innerH} Z`;
+  const area = `${line} L${coords[coords.length - 1].x},${baseY} L${coords[0].x},${baseY} Z`;
 
   return (
-    <svg className="area-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Eventos por hora">
+    <svg
+      className="area-chart"
+      viewBox={`0 0 ${width} ${height}`}
+      role="img"
+      aria-label="Actividad peatonal por hora"
+    >
       <defs>
-        <linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#2dd4bf" stopOpacity="0.45" />
-          <stop offset="100%" stopColor="#2dd4bf" stopOpacity="0.02" />
+        <linearGradient id="areaFillPed" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#22c55e" stopOpacity="0.5" />
+          <stop offset="100%" stopColor="#22c55e" stopOpacity="0.05" />
         </linearGradient>
       </defs>
-      <path d={area} fill="url(#areaFill)" />
-      <path d={line} fill="none" stroke="#2dd4bf" strokeWidth="2.5" />
+
+      {/* Grid + eje Y */}
+      {ticks.map((t) => {
+        const y = baseY - (t / maxY) * innerH;
+        return (
+          <g key={`tick-${t}`}>
+            <line
+              x1={padL}
+              x2={width - padR}
+              y1={y}
+              y2={y}
+              className="chart-grid"
+            />
+            <text x={padL - 8} y={y + 4} textAnchor="end" className="chart-axis">
+              {t}
+            </text>
+          </g>
+        );
+      })}
+      <text
+        x={14}
+        y={height / 2}
+        textAnchor="middle"
+        className="chart-axis chart-ylabel"
+        transform={`rotate(-90 14 ${height / 2})`}
+      >
+        {yLabel}
+      </text>
+
+      <path d={area} fill="url(#areaFillPed)" />
+      <path d={line} fill="none" stroke="#16a34a" strokeWidth="2.8" />
+
       {coords.map((c) => (
         <g key={c.label}>
-          <circle cx={c.x} cy={c.y} r="4" fill="#f0a202" />
-          <text x={c.x} y={height - 6} textAnchor="middle" className="chart-axis">
+          <circle cx={c.x} cy={c.y} r="4.5" fill="#f0a202" />
+          <text x={c.x} y={height - 8} textAnchor="middle" className="chart-axis">
             {c.label}
           </text>
-          <text x={c.x} y={c.y - 10} textAnchor="middle" className="chart-value">
-            {c.y}
-          </text>
+          {c.y > 0 && (
+            <text x={c.x} y={c.y - 10} textAnchor="middle" className="chart-value">
+              {c.y}
+            </text>
+          )}
         </g>
       ))}
     </svg>
@@ -96,8 +137,8 @@ export function HistoryModal({ open, onClose, refreshKey = 0 }) {
   const cargar = useCallback(async () => {
     try {
       const [histEventos, histEstados, saludSensor] = await Promise.all([
-        semaforoService.obtenerHistorialEventos(100),
-        semaforoService.obtenerHistorialEstados(40),
+        semaforoService.obtenerHistorialEventos(200),
+        semaforoService.obtenerHistorialEstados(200),
         semaforoService.obtenerSaludSensor(),
       ]);
       setEventos(histEventos?.eventos || []);
@@ -125,15 +166,48 @@ export function HistoryModal({ open, onClose, refreshKey = 0 }) {
     return map;
   }, [eventos]);
 
-  const porHora = useMemo(() => {
-    const buckets = {};
-    for (const ev of [...eventos].reverse()) {
-      if (!ev.timestamp) continue;
-      const label = horaLabel(ev.timestamp);
-      buckets[label] = (buckets[label] || 0) + 1;
+  // Ultimas 12h: cuantas veces el peatonal paso a VERDE (actividad de personas)
+  const actividadPeatonal = useMemo(() => {
+    const now = new Date();
+    const buckets = [];
+    const indexByHour = {};
+
+    for (let i = 11; i >= 0; i -= 1) {
+      const d = new Date(now.getTime() - i * 60 * 60 * 1000);
+      const hour = d.getHours();
+      const label = horaLabelFromDate(d);
+      // Si se repite la misma hora en el wrap de medianoche, usamos indice unico
+      const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}-${hour}`;
+      indexByHour[key] = buckets.length;
+      buckets.push({ label, y: 0, key, hour });
     }
-    return Object.entries(buckets).map(([label, y]) => ({ label, y }));
-  }, [eventos]);
+
+    const oldest = new Date(now.getTime() - 12 * 60 * 60 * 1000);
+    // Orden cronologico (mas antiguo primero) para detectar transiciones
+    const ordenados = [...estados].sort(
+      (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
+    );
+
+    let prevPea = null;
+    for (const st of ordenados) {
+      if (!st.timestamp) continue;
+      const d = new Date(st.timestamp);
+      if (Number.isNaN(d.getTime()) || d < oldest) {
+        prevPea = st.luz_peatonal;
+        continue;
+      }
+      const pea = st.luz_peatonal;
+      // Cuenta cada vez que ENCIENDE el verde peatonal
+      if (pea === 'VERDE' && prevPea !== 'VERDE') {
+        const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}-${d.getHours()}`;
+        const idx = indexByHour[key];
+        if (idx !== undefined) buckets[idx].y += 1;
+      }
+      prevPea = pea;
+    }
+
+    return buckets.map(({ label, y }) => ({ label, y }));
+  }, [estados]);
 
   if (!open) return null;
 
@@ -160,8 +234,13 @@ export function HistoryModal({ open, onClose, refreshKey = 0 }) {
 
         <div className="modal-grid">
           <section className="modal-card modal-card-wide">
-            <h3>Flujo temporal (eventos por hora)</h3>
-            <AreaChart puntos={porHora} />
+            <h3>Actividad peatonal (últimas 12 horas)</h3>
+            <p className="chart-help">
+              La curva <strong>sube</strong> cuando hubo cruces: cada unidad es una vez que el
+              semáforo peatonal pasó a <strong>verde</strong>. Eje vertical = cantidad de cruces;
+              eje horizontal = hora.
+            </p>
+            <AreaChart puntos={actividadPeatonal} yLabel="Cruces (verde peatonal)" />
           </section>
 
           <section className="modal-card">

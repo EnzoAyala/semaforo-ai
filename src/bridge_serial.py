@@ -30,7 +30,7 @@ SERIAL_PORT = _env("SERIAL_PORT", "COM3")
 BAUD_RATE = int(_env("SERIAL_BAUD", "115200"))
 DEVICE_ID = _env("DEVICE_ID", "arduino-uno")
 POLL_INTERVAL = float(_env("POLL_INTERVAL", "0.4"))
-EVENT_DEBOUNCE_SEC = float(_env("EVENT_DEBOUNCE_SEC", "2.5"))
+EVENT_DEBOUNCE_SEC = float(_env("EVENT_DEBOUNCE_SEC", "1.2"))
 
 
 def http_json(method: str, path: str, payload: Optional[dict] = None) -> Dict[str, Any]:
@@ -45,7 +45,7 @@ def http_json(method: str, path: str, payload: Optional[dict] = None) -> Dict[st
         return response.json()
 
 
-_last_event_at = 0.0
+_last_event_at = {"pir": 0.0, "button": 0.0, "ui": 0.0}
 _pending_beep = False
 
 
@@ -60,12 +60,15 @@ def comando_desde_estado(estado: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def enviar_evento(source: str) -> None:
-    global _last_event_at, _pending_beep
+    global _pending_beep
     now = time.time()
-    if (now - _last_event_at) < EVENT_DEBOUNCE_SEC:
+    # Debounce por fuente: el boton no debe perderse por un PIR cercano
+    last = _last_event_at.get(source, 0.0)
+    debounce = 0.6 if source == "button" else EVENT_DEBOUNCE_SEC
+    if (now - last) < debounce:
         print(f"[evento] ignorado (debounce) source={source}")
         return
-    _last_event_at = now
+    _last_event_at[source] = now
 
     resultado = http_json(
         "POST",

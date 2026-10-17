@@ -1,10 +1,8 @@
 /*
- * SemaforoIA — Firmware principal (Arduino Uno)
+ * SemaforoIA - Firmware Arduino Uno
  * Baudios: 115200
- *
- * Pines vehicular: R=D5, Y=D6, G=D10  (verde en D10; si antes usabas D7, mueve el cable)
- * Si en REPOSO ves ROJO en vez de VERDE: pon SWAP_VEH_RG = 1
- * Si los LEDs se invierten: pon LED_ACTIVE_LOW = 1
+ * PIR D2 | Boton D3 (a GND, INPUT_PULLUP) | Buzzer D4
+ * Veh R/Y/G = D5/D6/D10 | Pea R/G = D8/D9
  */
 
 const int SWAP_VEH_RG = 0;
@@ -16,115 +14,89 @@ const int PIN_BUTTON = 3;
 const int PIN_BUZZER = 4;
 const int PIN_VEH_R = 5;
 const int PIN_VEH_Y = 6;
-const int PIN_VEH_G = 10;  // verde vehicular (antes D7)
+const int PIN_VEH_G = 10;
 const int PIN_PEA_R = 8;
 const int PIN_PEA_G = 9;
 
-const unsigned long DEBOUNCE_MS = 50;
-const unsigned long PIR_STABLE_MS = 150;
-const unsigned long BOOT_IGNORE_MS = 5000;
-const unsigned long EVENT_COOLDOWN_MS = 4000;
+const unsigned long DEBOUNCE_MS = 30;
+const unsigned long PIR_HOLD_MS = 120;
+const unsigned long BOOT_IGNORE_MS = 4000;
+const unsigned long EVENT_GAP_MS = 1500;
+const unsigned long PIR_BLOCK_AFTER_BTN_MS = 2000;
 const unsigned long HEARTBEAT_MS = 2000;
 const unsigned long COMMAND_TIMEOUT_MS = 8000;
 const unsigned long BEEP_MS = 220;
 
 String serialBuffer = "";
+unsigned long bootMs = 0;
 unsigned long lastHeartbeat = 0;
 unsigned long lastCommandMs = 0;
-unsigned long lastEventMs = 0;
-unsigned long bootMs = 0;
+unsigned long lastAnyEventMs = 0;
+unsigned long blockPirUntil = 0;
 unsigned long beepUntil = 0;
+unsigned long pirRiseMs = 0;
 
-int lastPir = LOW;
-unsigned long pirHighSince = 0;
-int lastButtonStable = HIGH;
-int lastButtonReading = HIGH;
-unsigned long lastButtonChangeMs = 0;
+int prevPir = LOW;
+int btnStable = HIGH;
+int btnReading = HIGH;
+unsigned long btnChangeMs = 0;
 
 String currentVeh = "VERDE";
 String currentPea = "ROJO";
 
-int ledLevel(bool on) {
-  if (LED_ACTIVE_LOW) {
-    return on ? LOW : HIGH;
-  }
+int ledOn(bool on) {
+  if (LED_ACTIVE_LOW) return on ? LOW : HIGH;
   return on ? HIGH : LOW;
 }
 
-int buzzerLevel(bool on) {
-  if (BUZZER_ACTIVE_LOW) {
-    return on ? LOW : HIGH;
-  }
+int buzzOn(bool on) {
+  if (BUZZER_ACTIVE_LOW) return on ? LOW : HIGH;
   return on ? HIGH : LOW;
 }
 
-int pinVehRojo() {
-  return SWAP_VEH_RG ? PIN_VEH_G : PIN_VEH_R;
+int pinR() { return SWAP_VEH_RG ? PIN_VEH_G : PIN_VEH_R; }
+int pinG() { return SWAP_VEH_RG ? PIN_VEH_R : PIN_VEH_G; }
+
+void setVeh(bool r, bool y, bool g) {
+  digitalWrite(pinR(), ledOn(r));
+  digitalWrite(PIN_VEH_Y, ledOn(y));
+  digitalWrite(pinG(), ledOn(g));
 }
 
-int pinVehVerde() {
-  return SWAP_VEH_RG ? PIN_VEH_R : PIN_VEH_G;
-}
-
-void escribirVehicular(bool rojo, bool amarillo, bool verde) {
-  digitalWrite(pinVehRojo(), ledLevel(rojo));
-  digitalWrite(PIN_VEH_Y, ledLevel(amarillo));
-  digitalWrite(pinVehVerde(), ledLevel(verde));
-}
-
-void escribirPeatonal(bool rojo, bool verde) {
-  digitalWrite(PIN_PEA_R, ledLevel(rojo));
-  digitalWrite(PIN_PEA_G, ledLevel(verde));
+void setPea(bool r, bool g) {
+  digitalWrite(PIN_PEA_R, ledOn(r));
+  digitalWrite(PIN_PEA_G, ledOn(g));
 }
 
 void aplicarLuces(const String& veh, const String& pea) {
   currentVeh = veh;
   currentPea = pea;
+  if (veh == "ROJO") setVeh(true, false, false);
+  else if (veh == "AMARILLO") setVeh(false, true, false);
+  else setVeh(false, false, true);
 
-  if (veh == "ROJO") {
-    escribirVehicular(true, false, false);
-  } else if (veh == "AMARILLO") {
-    escribirVehicular(false, true, false);
-  } else {
-    escribirVehicular(false, false, true);
-  }
-
-  if (pea == "VERDE") {
-    escribirPeatonal(false, true);
-  } else {
-    escribirPeatonal(true, false);
-  }
+  if (pea == "VERDE") setPea(false, true);
+  else setPea(true, false);
 }
 
-void estadoSeguro() {
-  aplicarLuces("VERDE", "ROJO");
-}
+void estadoSeguro() { aplicarLuces("VERDE", "ROJO"); }
 
-void pitidoDeteccion() {
-  digitalWrite(PIN_BUZZER, buzzerLevel(true));
+void pitido() {
+  digitalWrite(PIN_BUZZER, buzzOn(true));
   beepUntil = millis() + BEEP_MS;
 }
 
-void actualizarBuzzer() {
-  if (beepUntil != 0 && millis() >= beepUntil) {
-    digitalWrite(PIN_BUZZER, buzzerLevel(false));
+void tickBuzzer() {
+  if (beepUntil && millis() >= beepUntil) {
+    digitalWrite(PIN_BUZZER, buzzOn(false));
     beepUntil = 0;
   }
 }
 
-bool sensoresHabilitados() {
-  return (millis() - bootMs) >= BOOT_IGNORE_MS;
-}
-
-void emitirEvento(const char* source) {
-  if (!sensoresHabilitados()) {
-    return;
-  }
-  if ((millis() - lastEventMs) < EVENT_COOLDOWN_MS) {
-    return;
-  }
-  lastEventMs = millis();
-  // El pitido lo confirma el bridge solo si la API acepta el cruce
+void emitir(const char* source) {
+  if (millis() - bootMs < BOOT_IGNORE_MS) return;
+  if (millis() - lastAnyEventMs < EVENT_GAP_MS) return;
+  lastAnyEventMs = millis();
   Serial.print(F("{\"type\":\"event\",\"source\":\""));
   Serial.print(source);
   Serial.print(F("\",\"ts\":"));
@@ -132,61 +104,31 @@ void emitirEvento(const char* source) {
   Serial.println(F("}"));
 }
 
-void emitirHeartbeat() {
-  int pir = digitalRead(PIN_PIR) == HIGH ? 1 : 0;
-  int button = digitalRead(PIN_BUTTON) == LOW ? 1 : 0;
-  Serial.print(F("{\"type\":\"heartbeat\",\"pir\":"));
-  Serial.print(pir);
-  Serial.print(F(",\"button\":"));
-  Serial.print(button);
-  Serial.print(F(",\"veh\":\""));
-  Serial.print(currentVeh);
-  Serial.print(F("\",\"pea\":\""));
-  Serial.print(currentPea);
-  Serial.println(F("\"}"));
-}
-
-String extraerCampo(const String& json, const char* key) {
+String campo(const String& json, const char* key) {
   String needle = String("\"") + key + "\":";
-  int idx = json.indexOf(needle);
-  if (idx < 0) {
-    return "";
+  int i = json.indexOf(needle);
+  if (i < 0) return "";
+  i += needle.length();
+  while (i < (int)json.length() && json[i] == ' ') i++;
+  if (i < (int)json.length() && json[i] == '\"') {
+    int e = json.indexOf('\"', i + 1);
+    if (e < 0) return "";
+    return json.substring(i + 1, e);
   }
-  idx += needle.length();
-  while (idx < (int)json.length() && json[idx] == ' ') {
-    idx++;
-  }
-  if (idx < (int)json.length() && json[idx] == '\"') {
-    int end = json.indexOf('\"', idx + 1);
-    if (end < 0) return "";
-    return json.substring(idx + 1, end);
-  }
-  int end = idx;
-  while (end < (int)json.length() && json[end] != ',' && json[end] != '}') {
-    end++;
-  }
-  return json.substring(idx, end);
+  int e = i;
+  while (e < (int)json.length() && json[e] != ',' && json[e] != '}') e++;
+  return json.substring(i, e);
 }
 
 void procesarComando(const String& line) {
-  if (line.indexOf("\"veh\"") < 0 || line.indexOf("\"pea\"") < 0) {
-    return;
-  }
-  String veh = extraerCampo(line, "veh");
-  String pea = extraerCampo(line, "pea");
-  if (veh.length() == 0 || pea.length() == 0) {
-    return;
-  }
+  if (line.indexOf("\"veh\"") < 0 || line.indexOf("\"pea\"") < 0) return;
+  String veh = campo(line, "veh");
+  String pea = campo(line, "pea");
+  if (veh.length() == 0 || pea.length() == 0) return;
   veh.toUpperCase();
   pea.toUpperCase();
   aplicarLuces(veh, pea);
-
-  // buzzer:1 = pitido corto de confirmacion (no tono continuo)
-  String buzzerRaw = extraerCampo(line, "buzzer");
-  if (buzzerRaw.toInt() != 0) {
-    pitidoDeteccion();
-  }
-
+  if (campo(line, "buzzer").toInt() != 0) pitido();
   lastCommandMs = millis();
 }
 
@@ -200,48 +142,51 @@ void leerSerial() {
       }
     } else {
       serialBuffer += c;
-      if (serialBuffer.length() > 200) {
-        serialBuffer = "";
-      }
+      if (serialBuffer.length() > 200) serialBuffer = "";
     }
   }
 }
 
-void leerSensores() {
-  if (!sensoresHabilitados()) {
-    lastPir = digitalRead(PIN_PIR);
-    lastButtonReading = digitalRead(PIN_BUTTON);
-    lastButtonStable = lastButtonReading;
-    pirHighSince = 0;
+void leerBoton() {
+  int raw = digitalRead(PIN_BUTTON);
+  if (raw != btnReading) {
+    btnChangeMs = millis();
+    btnReading = raw;
+  }
+  if (millis() - btnChangeMs < DEBOUNCE_MS) return;
+  if (raw == btnStable) return;
+
+  btnStable = raw;
+  if (btnStable == LOW) {
+    blockPirUntil = millis() + PIR_BLOCK_AFTER_BTN_MS;
+    pirRiseMs = 0;
+    emitir("button");
+  }
+}
+
+void leerPir() {
+  int pir = digitalRead(PIN_PIR);
+
+  if (millis() < blockPirUntil) {
+    prevPir = pir;
+    pirRiseMs = 0;
     return;
   }
 
-  int pir = digitalRead(PIN_PIR);
-  if (pir == HIGH && lastPir == LOW) {
-    pirHighSince = millis();
+  if (pir == HIGH && prevPir == LOW) {
+    pirRiseMs = millis();
   }
-  if (pir == HIGH && pirHighSince > 0 && (millis() - pirHighSince) >= PIR_STABLE_MS) {
-    emitirEvento("pir");
-    pirHighSince = 0;
-  }
-  if (pir == LOW) {
-    pirHighSince = 0;
-  }
-  lastPir = pir;
 
-  int reading = digitalRead(PIN_BUTTON);
-  if (reading != lastButtonReading) {
-    lastButtonChangeMs = millis();
-    lastButtonReading = reading;
+  if (pir == HIGH && pirRiseMs > 0 && (millis() - pirRiseMs) >= PIR_HOLD_MS) {
+    emitir("pir");
+    pirRiseMs = 0; // un solo disparo por ocupacion
   }
-  if ((millis() - lastButtonChangeMs) > DEBOUNCE_MS) {
-    if (reading != lastButtonStable) {
-      lastButtonStable = reading;
-      if (lastButtonStable == LOW) {
-        emitirEvento("button");
-      }
-    }
+
+  if (pir == LOW) {
+    pirRiseMs = 0;
   }
+
+  prevPir = pir;
 }
 
 void setup() {
@@ -255,25 +200,37 @@ void setup() {
   pinMode(PIN_PEA_R, OUTPUT);
   pinMode(PIN_PEA_G, OUTPUT);
 
-  digitalWrite(PIN_BUZZER, buzzerLevel(false));
+  digitalWrite(PIN_BUZZER, buzzOn(false));
   estadoSeguro();
 
   bootMs = millis();
   lastCommandMs = millis();
-  lastEventMs = 0;
-  beepUntil = 0;
+  lastAnyEventMs = 0;
+  blockPirUntil = 0;
+  prevPir = digitalRead(PIN_PIR);
+  btnReading = digitalRead(PIN_BUTTON);
+  btnStable = btnReading;
 
   Serial.println(F("{\"type\":\"boot\",\"device\":\"semaforo_ia\"}"));
 }
 
 void loop() {
   leerSerial();
-  leerSensores();
-  actualizarBuzzer();
+
+  if (millis() - bootMs >= BOOT_IGNORE_MS) {
+    leerBoton(); // prioridad
+    leerPir();
+  }
+
+  tickBuzzer();
 
   if (millis() - lastHeartbeat >= HEARTBEAT_MS) {
-    emitirHeartbeat();
     lastHeartbeat = millis();
+    Serial.print(F("{\"type\":\"heartbeat\",\"pir\":"));
+    Serial.print(digitalRead(PIN_PIR) == HIGH ? 1 : 0);
+    Serial.print(F(",\"button\":"));
+    Serial.print(digitalRead(PIN_BUTTON) == LOW ? 1 : 0);
+    Serial.println(F("}"));
   }
 
   if (millis() - lastCommandMs >= COMMAND_TIMEOUT_MS) {

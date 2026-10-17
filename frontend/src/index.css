@@ -14,5 +14,5 @@ body,
 }
 
 body {
-  background: #070b12;
+  background: var(--bg-deep, #070b12);
 }
