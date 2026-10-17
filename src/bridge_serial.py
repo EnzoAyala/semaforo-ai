@@ -29,7 +29,8 @@ API_BASE_URL = _env("API_BASE_URL", "http://localhost:8000").rstrip("/")
 SERIAL_PORT = _env("SERIAL_PORT", "COM3")
 BAUD_RATE = int(_env("SERIAL_BAUD", "115200"))
 DEVICE_ID = _env("DEVICE_ID", "arduino-uno")
-POLL_INTERVAL = float(_env("POLL_INTERVAL", "0.5"))
+POLL_INTERVAL = float(_env("POLL_INTERVAL", "0.4"))
+EVENT_DEBOUNCE_SEC = float(_env("EVENT_DEBOUNCE_SEC", "2.5"))
 
 
 def http_json(method: str, path: str, payload: Optional[dict] = None) -> Dict[str, Any]:
@@ -48,11 +49,22 @@ def comando_desde_estado(estado: Dict[str, Any]) -> Dict[str, Any]:
     modo = estado.get("modo", "REPOSO")
     veh = estado.get("luz_vehicular", "VERDE")
     pea = estado.get("luz_peatonal", "ROJO")
-    buzzer = 1 if modo in {"FASE_PEATONAL", "TRANSICION_AMARILLO"} else 0
+    # Buzzer solo en fase peatonal (evita ruido continuo en amarillo)
+    buzzer = 1 if modo == "FASE_PEATONAL" else 0
     return {"veh": veh, "pea": pea, "buzzer": buzzer}
 
 
+_last_event_at = 0.0
+
+
 def enviar_evento(source: str) -> None:
+    global _last_event_at
+    now = time.time()
+    if (now - _last_event_at) < EVENT_DEBOUNCE_SEC:
+        print(f"[evento] ignorado (debounce) source={source}")
+        return
+    _last_event_at = now
+
     resultado = http_json(
         "POST",
         "/api/sensor/evento",
@@ -105,7 +117,7 @@ def abrir_serial():
         ) from exc
 
     ser = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=0.2)
-    time.sleep(2)  # reset del Uno al abrir el puerto
+    time.sleep(2.5)  # espera al reset del Uno al abrir el puerto
     ser.reset_input_buffer()
     return ser
 
@@ -117,6 +129,13 @@ def main() -> int:
     except Exception as exc:
         print(f"No se pudo abrir {SERIAL_PORT}: {exc}", file=sys.stderr)
         return 1
+
+    # Partir siempre desde REPOSO al conectar el hardware
+    try:
+        reset = http_json("POST", "/api/reset")
+        print(f"[api] reset → {reset.get('resumen', {}).get('modo')}")
+    except (httpx.HTTPError, ValueError) as exc:
+        print(f"[api] no se pudo resetear (¿está docker compose arriba?): {exc}")
 
     buffer = ""
     last_poll = 0.0
@@ -141,12 +160,14 @@ def main() -> int:
                     estado = http_json("GET", "/api/estado")
                     cmd = comando_desde_estado(estado)
                     line = json.dumps(cmd, separators=(",", ":")) + "\n"
+                    ser.write(line.encode("utf-8"))
                     if line != last_cmd:
-                        ser.write(line.encode("utf-8"))
                         last_cmd = line
-                        print(f"[cmd] {cmd}")
-                    else:
-                        ser.write(line.encode("utf-8"))
+                        print(
+                            f"[cmd] modo={estado.get('modo')} "
+                            f"veh={cmd['veh']} pea={cmd['pea']} "
+                            f"t={estado.get('tiempo_restante_seg')}s"
+                        )
                 except (httpx.HTTPError, ValueError) as exc:
                     print(f"[api] no disponible: {exc}")
             time.sleep(0.02)

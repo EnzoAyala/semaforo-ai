@@ -161,6 +161,18 @@ def obtener_estado():
     return resumen
 
 
+@app.post("/api/reset")
+async def reset_semaforo():
+    """Vuelve el semáforo a REPOSO (útil al reconectar el bridge)."""
+    global semaforo, _ultimo_modo
+    semaforo = SemaforoInteligente(duracion_rojo=60.0, duracion_cooldown=120.0)
+    resumen = semaforo.obtener_resumen()
+    _ultimo_modo = resumen.get("modo")
+    storage.registrar_cambio_estado(resumen)
+    await manager.broadcast(resumen)
+    return {"status": "ok", "resumen": resumen}
+
+
 @app.post("/api/solicitar-cruce")
 async def solicitar_cruce(datos: SolicitudPeaton):
     resultado = _procesar_solicitud_cruce(

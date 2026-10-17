@@ -99,6 +99,13 @@ Diagrama de referencia:
 | Modo | Vehicular | Peatonal | Buzzer |
 |---|---|---|---|
 | REPOSO | VERDE | ROJO | off |
-| TRANSICION_AMARILLO | AMARILLO | ROJO | beep opcional |
+| TRANSICION_AMARILLO | AMARILLO | ROJO | off |
 | FASE_PEATONAL | ROJO | VERDE | on |
 | COOLDOWN | VERDE | ROJO | off |
+
+## Si las luces se ven al revés
+
+1. Con el sistema en reposo (sin peatón) debes ver **vehicular VERDE** y **peatonal ROJO**.
+2. Si ves vehicular **ROJO** en reposo: en `semaforo_ia.ino` pon `SWAP_VEH_RG = 1`, vuelve a subir el sketch.
+3. Si los LEDs se apagan cuando deberían encenderse: pon `LED_ACTIVE_LOW = 1` y vuelve a subir.
+4. Tras abrir el bridge, espera **5 segundos** antes de probar el PIR (el Arduino ignora sensores al arrancar).
