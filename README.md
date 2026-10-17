@@ -2,6 +2,8 @@
 
 Sistema inteligente de control peatonal que utiliza sensores IoT para detectar la presencia de peatones y gestionar automáticamente los estados de un semáforo. El proyecto integra un **backend desarrollado en Python/FastAPI**, un **dashboard web desarrollado con React + Vite**, pruebas automatizadas, análisis de seguridad, Docker y un pipeline de CI/CD.
 
+> Informe de presentación IoT (caso de uso, arquitectura, configs y recorrido de datos): **[IoT.md](IoT.md)**
+
 ## 1. Problema y Solución
 
 En avenidas con alta circulación vehicular, los semáforos peatonales pueden realizar cambios de señal de manera periódica incluso cuando no existen peatones esperando para cruzar. Esto puede generar **detenciones innecesarias, congestión vehicular y pérdida de tiempo**.

@@ -45,18 +45,22 @@ def http_json(method: str, path: str, payload: Optional[dict] = None) -> Dict[st
         return response.json()
 
 
+_last_event_at = 0.0
+_pending_beep = False
+
+
 def comando_desde_estado(estado: Dict[str, Any]) -> Dict[str, Any]:
+    global _pending_beep
     veh = estado.get("luz_vehicular", "VERDE")
     pea = estado.get("luz_peatonal", "ROJO")
-    # El pitido lo hace el Arduino solo al detectar PIR/botón
-    return {"veh": veh, "pea": pea, "buzzer": 0}
-
-
-_last_event_at = 0.0
+    # Pitido de un solo disparo solo si el cruce fue aceptado
+    buzzer = 1 if _pending_beep else 0
+    _pending_beep = False
+    return {"veh": veh, "pea": pea, "buzzer": buzzer}
 
 
 def enviar_evento(source: str) -> None:
-    global _last_event_at
+    global _last_event_at, _pending_beep
     now = time.time()
     if (now - _last_event_at) < EVENT_DEBOUNCE_SEC:
         print(f"[evento] ignorado (debounce) source={source}")
@@ -70,6 +74,8 @@ def enviar_evento(source: str) -> None:
     )
     aceptado = resultado.get("solicitud_aceptada")
     modo = (resultado.get("resumen") or {}).get("modo")
+    if aceptado:
+        _pending_beep = True
     print(f"[evento] source={source} aceptado={aceptado} modo={modo}")
 
 

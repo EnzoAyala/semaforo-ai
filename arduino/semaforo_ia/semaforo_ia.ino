@@ -21,9 +21,9 @@ const int PIN_PEA_R = 8;
 const int PIN_PEA_G = 9;
 
 const unsigned long DEBOUNCE_MS = 50;
-const unsigned long PIR_STABLE_MS = 80;
+const unsigned long PIR_STABLE_MS = 150;
 const unsigned long BOOT_IGNORE_MS = 5000;
-const unsigned long EVENT_COOLDOWN_MS = 3000;
+const unsigned long EVENT_COOLDOWN_MS = 4000;
 const unsigned long HEARTBEAT_MS = 2000;
 const unsigned long COMMAND_TIMEOUT_MS = 8000;
 const unsigned long BEEP_MS = 220;
@@ -124,7 +124,7 @@ void emitirEvento(const char* source) {
     return;
   }
   lastEventMs = millis();
-  pitidoDeteccion();  // solo suena al detectar PIR o botón
+  // El pitido lo confirma el bridge solo si la API acepta el cruce
   Serial.print(F("{\"type\":\"event\",\"source\":\""));
   Serial.print(source);
   Serial.print(F("\",\"ts\":"));
@@ -179,7 +179,14 @@ void procesarComando(const String& line) {
   }
   veh.toUpperCase();
   pea.toUpperCase();
-  aplicarLuces(veh, pea);  // el buzzer ya no lo controla la API
+  aplicarLuces(veh, pea);
+
+  // buzzer:1 = pitido corto de confirmacion (no tono continuo)
+  String buzzerRaw = extraerCampo(line, "buzzer");
+  if (buzzerRaw.toInt() != 0) {
+    pitidoDeteccion();
+  }
+
   lastCommandMs = millis();
 }
 
