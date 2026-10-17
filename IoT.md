@@ -202,7 +202,7 @@ Ver guía detallada: [hardware/MONTAJE.md](hardware/MONTAJE.md)
 | Señal | Pin |
 |-------|-----|
 | PIR OUT | D2 |
-| Pulsador | D3 |
+| Pulsador | D3 → GND |
 | Buzzer | D4 |
 | Vehicular R / Y / G | D5 / D6 / **D10** |
 | Peatonal R / G | D8 / D9 |

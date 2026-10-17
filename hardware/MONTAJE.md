@@ -62,9 +62,10 @@ Diagrama de referencia:
 ### Paso 3 — Pulsador
 
 1. Inserta el pulsador a caballo sobre el canal central del protoboard.
-2. Una pata → **D3**.
+2. Una pata de señal → **D3**.
 3. La pata opuesta → rail **GND**.
 4. El firmware usa `INPUT_PULLUP`: en reposo HIGH; al pulsar, LOW.
+5. Al pulsar, aléjate un poco del PIR unos segundos (si no, puede disparar `pir` por la mano).
 
 ### Paso 4 — Buzzer
 

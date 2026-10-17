@@ -1,7 +1,7 @@
 /*
  * SemaforoIA - Firmware Arduino Uno
  * Baudios: 115200
- * PIR D2 | Boton D3 (a GND, INPUT_PULLUP) | Buzzer D4
+ * PIR OUT D2 | Boton D3 (a GND, INPUT_PULLUP) | Buzzer D4
  * Veh R/Y/G = D5/D6/D10 | Pea R/G = D8/D9
  */
 
@@ -9,8 +9,8 @@ const int SWAP_VEH_RG = 0;
 const int LED_ACTIVE_LOW = 0;
 const int BUZZER_ACTIVE_LOW = 0;
 
-const int PIN_PIR = 2;
-const int PIN_BUTTON = 3;
+const int PIN_PIR = 2;     // PIR OUT
+const int PIN_BUTTON = 3;  // pulsador: senal a D3, otra pata a GND
 const int PIN_BUZZER = 4;
 const int PIN_VEH_R = 5;
 const int PIN_VEH_Y = 6;
@@ -18,11 +18,12 @@ const int PIN_VEH_G = 10;
 const int PIN_PEA_R = 8;
 const int PIN_PEA_G = 9;
 
-const unsigned long DEBOUNCE_MS = 30;
-const unsigned long PIR_HOLD_MS = 120;
+const unsigned long DEBOUNCE_MS = 40;
+const unsigned long PIR_HOLD_MS = 150;
 const unsigned long BOOT_IGNORE_MS = 4000;
-const unsigned long EVENT_GAP_MS = 1500;
-const unsigned long PIR_BLOCK_AFTER_BTN_MS = 2000;
+const unsigned long BUTTON_GAP_MS = 500;
+const unsigned long PIR_GAP_MS = 2000;
+const unsigned long PIR_BLOCK_AFTER_BTN_MS = 3000;
 const unsigned long HEARTBEAT_MS = 2000;
 const unsigned long COMMAND_TIMEOUT_MS = 8000;
 const unsigned long BEEP_MS = 220;
@@ -31,10 +32,12 @@ String serialBuffer = "";
 unsigned long bootMs = 0;
 unsigned long lastHeartbeat = 0;
 unsigned long lastCommandMs = 0;
-unsigned long lastAnyEventMs = 0;
+unsigned long lastButtonEventMs = 0;
+unsigned long lastPirEventMs = 0;
 unsigned long blockPirUntil = 0;
 unsigned long beepUntil = 0;
 unsigned long pirRiseMs = 0;
+bool buttonHeld = false;
 
 int prevPir = LOW;
 int btnStable = HIGH;
@@ -95,8 +98,6 @@ void tickBuzzer() {
 
 void emitir(const char* source) {
   if (millis() - bootMs < BOOT_IGNORE_MS) return;
-  if (millis() - lastAnyEventMs < EVENT_GAP_MS) return;
-  lastAnyEventMs = millis();
   Serial.print(F("{\"type\":\"event\",\"source\":\""));
   Serial.print(source);
   Serial.print(F("\",\"ts\":"));
@@ -154,10 +155,18 @@ void leerBoton() {
     btnReading = raw;
   }
   if (millis() - btnChangeMs < DEBOUNCE_MS) return;
-  if (raw == btnStable) return;
+  if (raw == btnStable) {
+    buttonHeld = (btnStable == LOW);
+    return;
+  }
 
   btnStable = raw;
+  buttonHeld = (btnStable == LOW);
+
+  // Flanco de pulsacion (HIGH -> LOW con pull-up)
   if (btnStable == LOW) {
+    if (millis() - lastButtonEventMs < BUTTON_GAP_MS) return;
+    lastButtonEventMs = millis();
     blockPirUntil = millis() + PIR_BLOCK_AFTER_BTN_MS;
     pirRiseMs = 0;
     emitir("button");
@@ -167,7 +176,9 @@ void leerBoton() {
 void leerPir() {
   int pir = digitalRead(PIN_PIR);
 
-  if (millis() < blockPirUntil) {
+  // Mientras el boton esta pulsado o recien se pulso, no emitir PIR
+  // (la mano cerca del sensor suele dispararlo)
+  if (buttonHeld || millis() < blockPirUntil) {
     prevPir = pir;
     pirRiseMs = 0;
     return;
@@ -178,8 +189,11 @@ void leerPir() {
   }
 
   if (pir == HIGH && pirRiseMs > 0 && (millis() - pirRiseMs) >= PIR_HOLD_MS) {
-    emitir("pir");
-    pirRiseMs = 0; // un solo disparo por ocupacion
+    if (millis() - lastPirEventMs >= PIR_GAP_MS) {
+      lastPirEventMs = millis();
+      emitir("pir");
+    }
+    pirRiseMs = 0;
   }
 
   if (pir == LOW) {
@@ -205,8 +219,10 @@ void setup() {
 
   bootMs = millis();
   lastCommandMs = millis();
-  lastAnyEventMs = 0;
+  lastButtonEventMs = 0;
+  lastPirEventMs = 0;
   blockPirUntil = 0;
+  buttonHeld = false;
   prevPir = digitalRead(PIN_PIR);
   btnReading = digitalRead(PIN_BUTTON);
   btnStable = btnReading;

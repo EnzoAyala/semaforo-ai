@@ -46,6 +46,7 @@ def http_json(method: str, path: str, payload: Optional[dict] = None) -> Dict[st
 
 
 _last_event_at = {"pir": 0.0, "button": 0.0, "ui": 0.0}
+_pir_block_until = 0.0
 _pending_beep = False
 
 
@@ -60,15 +61,21 @@ def comando_desde_estado(estado: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def enviar_evento(source: str) -> None:
-    global _pending_beep
+    global _pending_beep, _pir_block_until
     now = time.time()
+    if source == "pir" and now < _pir_block_until:
+        print("[evento] ignorado (bloqueado tras boton) source=pir")
+        return
     # Debounce por fuente: el boton no debe perderse por un PIR cercano
     last = _last_event_at.get(source, 0.0)
-    debounce = 0.6 if source == "button" else EVENT_DEBOUNCE_SEC
+    debounce = 0.35 if source == "button" else EVENT_DEBOUNCE_SEC
     if (now - last) < debounce:
         print(f"[evento] ignorado (debounce) source={source}")
         return
     _last_event_at[source] = now
+    if source == "button":
+        # La mano al pulsar suele disparar el PIR: bloquearlo unos segundos
+        _pir_block_until = now + 3.0
 
     resultado = http_json(
         "POST",

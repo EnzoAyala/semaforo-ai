@@ -1,7 +1,7 @@
 /*
  * SemaforoIA — Prueba rápida de pines
  * Enciende cada LED 1 s y hace un beep corto en el buzzer.
- * Pines: PIR D2, botón D3, buzzer D4, veh D5/D6/D7, pea D8/D9
+ * Pines: PIR D2, boton D3, buzzer D4, veh D5/D6/D10, pea D8/D9
  */
 # include <Arduino.h>
 
