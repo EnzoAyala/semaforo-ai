@@ -7,7 +7,7 @@ const MENSAJE_INICIAL = {
   texto: 'Hola, soy el asistente de SemaforoIA. Pregúntame por el estado del semáforo o cuándo puedes cruzar.',
 };
 
-export function Chatbot() {
+export function Chatbot({ compact = false }) {
   const [mensajes, setMensajes] = useState([MENSAJE_INICIAL]);
   const [consulta, setConsulta] = useState('');
   const [enviando, setEnviando] = useState(false);
@@ -187,13 +187,13 @@ export function Chatbot() {
   };
 
   return (
-    <section className="chatbot-card" aria-labelledby="chatbot-title">
+    <section className={`chatbot-card ${compact ? 'chatbot-compact' : ''}`} aria-labelledby="chatbot-title">
       <div className="chatbot-header">
         <div>
-          <h2 id="chatbot-title">🤖 Asistente inteligente</h2>
-          <p>Gemini conectado al estado del semáforo con voz y texto</p>
+          <h2 id="chatbot-title">Asistente</h2>
+          <p>Gemini + estado del semáforo</p>
         </div>
-        <span className="chatbot-online">Gemini 3.6 Flash</span>
+        <span className="chatbot-online">Gemini</span>
       </div>
 
       <div className="chatbot-messages" aria-live="polite">

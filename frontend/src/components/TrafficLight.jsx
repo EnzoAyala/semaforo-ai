@@ -1,20 +1,39 @@
 export const TrafficLight = ({ luzVehicular, luzPeatonal }) => {
   return (
-    <div className="traffic-light-container">
-      {/* Semáforo Vehicular */}
-      <div className="light-box">
-        <h4>Vehicular</h4>
-        <div className={`light-circle red ${luzVehicular === 'ROJO' ? 'active' : ''}`} />
-        <div className={`light-circle yellow ${luzVehicular === 'AMARILLO' ? 'active' : ''}`} />
-        <div className={`light-circle green ${luzVehicular === 'VERDE' ? 'active' : ''}`} />
-      </div>
+    <div className="stage-lights" aria-label="Semáforos en vivo">
+      <article className="pole pole-vehicular">
+        <p className="pole-label">Vehicular</p>
+        <div className="housing housing-3">
+          <span
+            className={`lens red ${luzVehicular === 'ROJO' ? 'on' : ''}`}
+            aria-label="Rojo vehicular"
+          />
+          <span
+            className={`lens yellow ${luzVehicular === 'AMARILLO' ? 'on' : ''}`}
+            aria-label="Amarillo vehicular"
+          />
+          <span
+            className={`lens green ${luzVehicular === 'VERDE' ? 'on' : ''}`}
+            aria-label="Verde vehicular"
+          />
+        </div>
+        <div className="pole-stem" />
+      </article>
 
-      {/* Semáforo Peatonal */}
-      <div className="light-box">
-        <h4>Peatonal</h4>
-        <div className={`light-circle red ${luzPeatonal === 'ROJO' ? 'active' : ''}`} />
-        <div className={`light-circle green ${luzPeatonal === 'VERDE' ? 'active' : ''}`} />
-      </div>
+      <article className="pole pole-peatonal">
+        <p className="pole-label">Peatonal</p>
+        <div className="housing housing-2">
+          <span
+            className={`lens red ${luzPeatonal === 'ROJO' ? 'on' : ''}`}
+            aria-label="Rojo peatonal"
+          />
+          <span
+            className={`lens green ${luzPeatonal === 'VERDE' ? 'on' : ''}`}
+            aria-label="Verde peatonal"
+          />
+        </div>
+        <div className="pole-stem" />
+      </article>
     </div>
   );
 };

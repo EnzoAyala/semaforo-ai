@@ -93,5 +93,27 @@ export const semaforoService = {
       throw new Error(mensaje);
     }
     return await res.json();
-  }
+  },
+
+  async obtenerHistorialEventos(limit = 50) {
+    const res = await fetch(`${API_BASE_URL}/historial/eventos?limit=${limit}`);
+    if (!res.ok) throw new Error('Error al obtener historial de eventos');
+    return await res.json();
+  },
+
+  async obtenerHistorialEstados(limit = 50) {
+    const res = await fetch(`${API_BASE_URL}/historial/estados?limit=${limit}`);
+    if (!res.ok) throw new Error('Error al obtener historial de estados');
+    return await res.json();
+  },
+
+  async obtenerSaludSensor() {
+    try {
+      const res = await fetch(`${API_BASE_URL}/sensor/salud`);
+      if (!res.ok) return null;
+      return await res.json();
+    } catch {
+      return null;
+    }
+  },
 };

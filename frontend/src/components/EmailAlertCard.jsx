@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { semaforoService } from '../services/api';
 
-export const EmailAlertCard = ({ modo, onNotificar }) => {
+export const EmailAlertCard = ({ modo, onNotificar, compact = false }) => {
   const [correo, setCorreo] = useState('');
   const [cargando, setCargando] = useState(false);
 
@@ -81,9 +81,9 @@ export const EmailAlertCard = ({ modo, onNotificar }) => {
   };
 
   return (
-    <div className="control-card">
+    <div className={`control-card email-card ${compact ? 'email-compact' : ''}`}>
       <div className="email-group">
-        <label>Destinatario Email:</label>
+        <label>Destinatario del correo</label>
 
         <input
           type="email"
