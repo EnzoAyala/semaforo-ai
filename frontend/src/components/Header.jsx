@@ -1,4 +1,10 @@
 import { Moon, Sun } from 'lucide-react';
+import {
+  descripcionModo,
+  labelModo,
+  modoTieneContador,
+  sensorPirActivo,
+} from '../utils/modoLabels';
 
 export const Header = ({
   modo,
@@ -10,7 +16,11 @@ export const Header = ({
   franjaActiva = null,
   duracionRojo = 60,
   duracionCooldown = 120,
-}) => (
+}) => {
+  const showTimer = modoTieneContador(modo) && Number(tiempoRestante) > 0.05;
+  const pirOn = sensorPirActivo(modo);
+
+  return (
   <header className="stage-topbar">
     <div className="brand-block">
       <p className="brand-name">SemaforoIA</p>
@@ -29,18 +39,31 @@ export const Header = ({
       </button>
 
       <div className="status-pills" aria-live="polite">
-        <span className="pill">
+        <span
+          className="pill"
+          title={descripcionModo(modo, duracionCooldown)}
+        >
           <small>Modo</small>
-          <strong>{modo || '—'}</strong>
+          <strong>{labelModo(modo)}</strong>
         </span>
         <span className="pill pill-timer" aria-live="polite">
           <small>Tiempo</small>
           <strong className="timer-digits">
-            {Math.max(0, Math.ceil(Number(tiempoRestante) || 0))
-              .toString()
-              .padStart(2, '0')}
-            <span className="timer-unit">s</span>
+            {showTimer ? (
+              <>
+                {Math.ceil(Number(tiempoRestante))
+                  .toString()
+                  .padStart(2, '0')}
+                <span className="timer-unit">s</span>
+              </>
+            ) : (
+              <span className="timer-idle">—</span>
+            )}
           </strong>
+        </span>
+        <span className={`pill ${pirOn ? 'pill-ok' : 'pill-off'}`}>
+          <small>PIR</small>
+          <strong>{pirOn ? 'Activo' : 'Bloqueado'}</strong>
         </span>
         <span
           className={`pill ${enHoraPico ? 'pill-peak' : 'pill-offpeak'}`}
@@ -60,4 +83,5 @@ export const Header = ({
       </div>
     </div>
   </header>
-);
+  );
+};

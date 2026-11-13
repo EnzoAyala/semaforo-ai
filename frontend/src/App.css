@@ -281,6 +281,11 @@ body {
   font-weight: 600;
 }
 
+.pill-timer .timer-idle {
+  opacity: 0.45;
+  letter-spacing: 0.08em;
+}
+
 .sim3d-timer {
   font-variant-numeric: tabular-nums;
   font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;

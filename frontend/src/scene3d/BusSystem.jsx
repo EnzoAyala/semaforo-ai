@@ -16,8 +16,8 @@ const CYCLE_GAP_S = 18;
 const DWELL_S = 5.2;
 const BUS_LEN = 4.6;
 const HALF_LEN = BUS_LEN * 0.5;
-const STOP_LINE = 3.4;
-const ZEBRA_EDGE = 3.4;
+const STOP_LINE = 3.2;
+const ZEBRA_EDGE = 2.0;
 const MIN_GAP = 5.2;
 const MAX_SPEED = 5.2;
 const ACCEL = 3.2;
@@ -245,27 +245,33 @@ export function BusFleet({
     } else if (phase.current === 'leave') {
       const frontX = x.current + dir * HALF_LEN;
       const rearX = x.current - dir * HALF_LEN;
-      const beforeStop = frontX >= STOP_LINE - 0.02;
+      // Bus va en -X: línea de alto en +3.2
+      const committed = frontX < STOP_LINE - 0.55;
       const clearedZebra = rearX < -ZEBRA_EDGE;
+      const stopCenter = STOP_LINE + HALF_LEN + 0.12;
 
       if (mustYield && !clearedZebra) {
-        if (beforeStop) targetSpeed = 0;
-        else targetSpeed = Math.max(MAX_SPEED, 4.2); // ya entró → despejar
+        if (!committed) targetSpeed = 0;
+        else targetSpeed = Math.max(MAX_SPEED, 4.2);
       }
-      if (blockedByCar && !(mustYield && !beforeStop && !clearedZebra)) {
+      if (blockedByCar && !(mustYield && committed && !clearedZebra)) {
         targetSpeed = 0;
       }
 
-      const rate = targetSpeed < speed.current ? BRAKE : ACCEL;
+      const rate =
+        targetSpeed < speed.current
+          ? mustYield && !committed
+            ? BRAKE * 1.35
+            : BRAKE
+          : ACCEL;
       speed.current += Math.sign(targetSpeed - speed.current) * rate * dt;
       if (Math.abs(targetSpeed - speed.current) < 0.05) speed.current = targetSpeed;
       speed.current = Math.max(0, speed.current);
       x.current += dir * speed.current * dt;
 
-      if (mustYield && beforeStop) {
-        const minCenter = STOP_LINE + HALF_LEN;
-        if (x.current < minCenter) {
-          x.current = minCenter;
+      if (mustYield && !committed && !clearedZebra) {
+        if (x.current < stopCenter) {
+          x.current = stopCenter;
           speed.current = 0;
         }
       }

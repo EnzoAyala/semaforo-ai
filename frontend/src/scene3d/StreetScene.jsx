@@ -162,7 +162,8 @@ function SceneContent({
   ambienceMode,
 }) {
   const modo = estado?.modo || 'REPOSO';
-  // Luces derivadas del modo (fuente de verdad) por si el snapshot llega inconsistente
+  // Luces = diagrama README (modo es la fuente de verdad)
+  // REPOSO/COOLDOWN: veh VERDE, pea ROJO | AMARILLO: veh AMARILLO | PEATONAL: veh ROJO, pea VERDE
   const luzVehicular =
     modo === 'TRANSICION_AMARILLO'
       ? 'AMARILLO'
@@ -204,6 +205,7 @@ function SceneContent({
         luzVehicular={luzVehicular}
         luzPeatonal={luzPeatonal}
         tiempoRestante={tiempoRestante}
+        modo={modo}
       />
 
       {agents.map((a) => (

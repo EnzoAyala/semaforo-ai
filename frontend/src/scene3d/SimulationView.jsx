@@ -7,6 +7,8 @@ import {
   makeInitialAgents,
   makeBusPassengers,
   nextTripRoute,
+  clampAgents,
+  MAX_PEDESTRIANS,
 } from './Pedestrian';
 import { AMBIENCE_OPTIONS } from './atmosphere';
 import {
@@ -15,6 +17,12 @@ import {
   readSimStore,
   subscribeSimStore,
 } from './simPersistence';
+import {
+  descripcionModo,
+  labelModo,
+  modoTieneContador,
+  sensorPirActivo,
+} from '../utils/modoLabels';
 
 const WAVE_CHECK_MS = 3500;
 const STAGGER_MS = 320;
@@ -26,7 +34,7 @@ function restoreAgentsFrom(store) {
   const ok = saved.every(
     (a) => a?.id && a?.phase && a?.route?.homeDoor && Array.isArray(a.route.homeDoor)
   );
-  return ok ? saved : makeInitialAgents();
+  return ok ? clampAgents(saved) : makeInitialAgents();
 }
 
 function applyStoreToUi(store, setters) {
@@ -72,6 +80,7 @@ export function SimulationView({
   const ambienceRef = useRef(ambienceMode);
   const iniciarRef = useRef(() => false);
   const applyingRemote = useRef(false);
+  const prevModoRef = useRef(estado?.modo);
 
   useEffect(() => {
     let cancelled = false;
@@ -195,7 +204,7 @@ export function SimulationView({
       waveLockRef.current = true;
       triggerFiredRef.current = false;
 
-      const batch = readyAgents.slice(0, Math.min(8, readyAgents.length));
+      const batch = readyAgents.slice(0, Math.min(6, readyAgents.length));
       onNotificar?.(
         `Nueva oleada: ${batch.length} personas hacia el cruce / mall`
       );
@@ -227,12 +236,7 @@ export function SimulationView({
     if (!ready) return undefined;
     // Si ya hay peatones a mitad de ciclo (tras F5 / red), no reiniciar oleada
     const inProgress = agentsRef.current.some((a) => a.phase !== 'hidden');
-    if (inProgress) {
-      if (agentsRef.current.some((a) => a.phase === 'wait' || a.phase === 'cross')) {
-        triggerFiredRef.current = true;
-      }
-      return undefined;
-    }
+    if (inProgress) return undefined;
     const t = window.setTimeout(() => {
       if (autoRef.current) iniciarRef.current();
     }, 1400);
@@ -256,17 +260,12 @@ export function SimulationView({
     return () => window.clearInterval(id);
   }, [ready, auto, estado?.modo]);
 
-  // Al volver a REPOSO se puede volver a pedir cruce (antes quedaba bloqueado)
-  useEffect(() => {
-    if (estado?.modo === 'REPOSO') {
-      triggerFiredRef.current = false;
-    }
-  }, [estado?.modo]);
-
   const requestCrossing = useCallback(async () => {
+    // README: PIR solo activo en REPOSO
+    if (!sensorPirActivo(estado?.modo)) return;
     if (triggerFiredRef.current) return;
     triggerFiredRef.current = true;
-    onNotificar?.('Sensor PIR: peatones esperando');
+    onNotificar?.('PIR: peatón detectado → inicia ciclo');
 
     const res = await semaforoService.enviarEventoSensor('pir', 'sim-3d');
     if (!res) {
@@ -276,17 +275,87 @@ export function SimulationView({
     }
     if (res.resumen) onEstado?.(res.resumen);
     if (res.solicitud_aceptada) {
-      onNotificar?.('Cruce aceptado → amarillo → peatonal → cooldown');
+      onNotificar?.('Ciclo: AMARILLO 3s → PEATONAL 60s → COOLDOWN 120s');
     } else {
       onNotificar?.(
-        `Esperan luz (${res.resumen?.modo || estado?.modo || 'ocupado'})`
+        `PIR ignorado (${labelModo(res.resumen?.modo || estado?.modo)})`
       );
-      // Reintentar cuando termine la fase ocupada
       window.setTimeout(() => {
         triggerFiredRef.current = false;
       }, 2500);
     }
   }, [estado?.modo, onNotificar, onEstado]);
+
+  // Anuncia cada transición del flujo README
+  useEffect(() => {
+    const prev = prevModoRef.current;
+    const modo = estado?.modo;
+    prevModoRef.current = modo;
+    if (!modo || modo === prev) return;
+
+    if (modo === 'TRANSICION_AMARILLO') {
+      onNotificar?.('AMARILLO 3s — advertencia vehicular');
+      return;
+    }
+    if (modo === 'FASE_PEATONAL') {
+      onNotificar?.('PEATONAL 60s — vehicular ROJO · peatonal VERDE');
+      return;
+    }
+    if (modo === 'COOLDOWN') {
+      triggerFiredRef.current = true;
+      onNotificar?.(
+        `COOLDOWN ${Math.round(estado?.duracion_cooldown || 120)}s — PIR bloqueado`
+      );
+      return;
+    }
+    if (modo === 'REPOSO' && prev === 'COOLDOWN') {
+      triggerFiredRef.current = false;
+      const waiting = agentsRef.current.some(
+        (a) => a.phase === 'wait' || a.phase === 'toWait'
+      );
+      if (waiting) {
+        onNotificar?.('REPOSO: PIR reactivado → detecta gente en espera');
+        window.setTimeout(() => {
+          triggerFiredRef.current = false;
+          requestCrossing();
+        }, 400);
+      } else {
+        onNotificar?.('REPOSO: PIR activo, sin peatones → permanece en reposo');
+      }
+      return;
+    }
+    if (modo === 'REPOSO') {
+      triggerFiredRef.current = false;
+    }
+  }, [estado?.modo, estado?.duracion_cooldown, onNotificar, requestCrossing]);
+
+  // Mientras PIR esté activo y haya gente esperando, pedir cruce
+  useEffect(() => {
+    if (!ready) return undefined;
+    const id = window.setInterval(() => {
+      if (!sensorPirActivo(estado?.modo)) return;
+      const waiting = agentsRef.current.some(
+        (a) => a.phase === 'wait' || a.phase === 'toWait'
+      );
+      if (waiting) requestCrossing();
+    }, 2800);
+    return () => window.clearInterval(id);
+  }, [ready, estado?.modo, requestCrossing]);
+
+  // Verde peatonal → cruzan los que esperan
+  useEffect(() => {
+    if (estado?.modo !== 'FASE_PEATONAL') return;
+    const waiting = agentsRef.current.filter(
+      (a) => a.phase === 'wait' || a.phase === 'toWait'
+    );
+    if (!waiting.length) return;
+    setAgents((prev) =>
+      prev.map((a) =>
+        a.phase === 'wait' || a.phase === 'toWait' ? { ...a, phase: 'cross' } : a
+      )
+    );
+    onNotificar?.('Verde peatonal: peatones en espera cruzan');
+  }, [estado?.modo, onNotificar]);
 
   const finishAgentTrip = useCallback(
     (id) => {
@@ -314,20 +383,26 @@ export function SimulationView({
         return;
       }
       if (event === 'atWait') {
-        setAgentPhase(id, 'wait');
-        requestCrossing();
+        // Si ya hay verde al llegar, cruzar de una; si no, esperar y pedir luz
+        if (crossingAllowed) {
+          setAgentPhase(id, 'cross');
+          onNotificar?.('Llegó con verde: cruza');
+        } else {
+          setAgentPhase(id, 'wait');
+          requestCrossing();
+        }
         return;
       }
       if (event === 'canCross' && crossingAllowed) {
         setAgents((prev) => {
           const agent = prev.find((a) => a.id === id);
-          if (!agent || agent.phase !== 'wait') return prev;
-          const anyAlready = prev.some((a) => a.phase === 'cross');
-          if (!anyAlready) {
-            onNotificar?.('Verde peatonal: el grupo cruza (cebra libre)');
+          if (!agent || (agent.phase !== 'wait' && agent.phase !== 'toWait')) {
+            return prev;
           }
           return prev.map((a) =>
-            a.id === id && a.phase === 'wait' ? { ...a, phase: 'cross' } : a
+            a.id === id && (a.phase === 'wait' || a.phase === 'toWait')
+              ? { ...a, phase: 'cross' }
+              : a
           );
         });
         return;
@@ -354,9 +429,19 @@ export function SimulationView({
 
   const onPassengersAlight = useCallback(
     ({ at, count }) => {
-      const passengers = makeBusPassengers(at, count);
-      onNotificar?.(`Bus: bajan ${count} — unos al mall, otros a cruzar`);
-      setAgents((prev) => [...prev, ...passengers]);
+      setAgents((prev) => {
+        const room = Math.max(0, MAX_PEDESTRIANS - prev.length);
+        if (room <= 0) {
+          onNotificar?.(`Bus: sin cupo (máx. ${MAX_PEDESTRIANS} peatones)`);
+          return prev;
+        }
+        const n = Math.min(count, room);
+        const passengers = makeBusPassengers(at, n);
+        onNotificar?.(
+          `Bus: bajan ${n} — unos al mall, otros a cruzar (máx. ${MAX_PEDESTRIANS})`
+        );
+        return clampAgents([...prev, ...passengers]);
+      });
       window.setTimeout(() => {
         requestCrossing();
       }, 1800);
@@ -365,6 +450,15 @@ export function SimulationView({
   );
 
   const pulsarBoton = async () => {
+    if (!sensorPirActivo(estado?.modo)) {
+      onNotificar?.(
+        `Pulsador ignorado — ${descripcionModo(estado?.modo, estado?.duracion_cooldown || 120)}` +
+          (modoTieneContador(estado?.modo)
+            ? ` (${Math.ceil(tiempoRestante || 0)}s)`
+            : '')
+      );
+      return;
+    }
     onNotificar?.('Pulsador peatonal (manual)');
     const res = await semaforoService.enviarEventoSensor('button', 'sim-3d');
     if (!res) {
@@ -374,10 +468,10 @@ export function SimulationView({
     if (res.resumen) onEstado?.(res.resumen);
     if (res.solicitud_aceptada) {
       triggerFiredRef.current = true;
-      onNotificar?.('Pulsador aceptado → secuencia del semáforo');
+      onNotificar?.('Pulsador OK → AMARILLO 3s → PEATONAL 60s → COOLDOWN 120s');
     } else {
       onNotificar?.(
-        `Pulsador rechazado (${res.resumen?.modo || 'activo'})`
+        `Pulsador rechazado (${labelModo(res.resumen?.modo || estado?.modo)})`
       );
     }
   };
@@ -432,8 +526,8 @@ export function SimulationView({
           <h2>Cruce peatonal IoT</h2>
           <p>
             Flujo continuo · bus · mall · Modo:{' '}
-            <strong>{estado?.modo || '—'}</strong>
-            {tiempoRestante > 0.05 ? (
+            <strong>{labelModo(estado?.modo)}</strong>
+            {modoTieneContador(estado?.modo) && tiempoRestante > 0.05 ? (
               <>
                 {' · '}
                 <strong className="sim3d-timer">
@@ -441,6 +535,8 @@ export function SimulationView({
                 </strong>
               </>
             ) : null}
+            {' · PIR '}
+            {sensorPirActivo(estado?.modo) ? 'activo' : 'bloqueado'}
             {auto ? ' · AUTO ON' : ' · AUTO OFF'}
           </p>
         </div>

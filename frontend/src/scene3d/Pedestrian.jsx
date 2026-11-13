@@ -275,19 +275,27 @@ export function Pedestrian({
         anim.current.walking = false;
         anim.current.phase += dt * 2.2;
         publishPedestrian(id, null);
-        const crossClear = !vehicleBlocksCrosswalk(route.wait[0], 0, 7.2);
-        if (crossingAllowed && crossClear) emit('canCross');
+        // En verde peatonal: cruzar ya (los autos deben ceder / despejar)
+        if (crossingAllowed) emit('canCross');
         return;
       }
 
       if (p === 'cross') {
         const onRoad = Math.abs(pos.z) < 7.2;
+        // Solo frenar ante un auto muy cerca en el carril; no bloquear toda la cebra
         const lookAhead = pos.clone().lerp(
           crossStage.current === 0 ? points.mid : points.farCurb,
           0.35
         );
-        const blocked = vehicleBlocksCrosswalk(lookAhead.x, lookAhead.z, 1.55);
-        if ((!onRoad && !crossingAllowed) || blocked) {
+        const blocked = vehicleBlocksCrosswalk(lookAhead.x, lookAhead.z, 0.85);
+        // Si el verde se apaga y aún no entró a la calzada, se queda en borde
+        if (!onRoad && !crossingAllowed) {
+          faceToward(points.mid);
+          anim.current.walking = false;
+          anim.current.phase += dt * 2;
+          return;
+        }
+        if (blocked && !onRoad) {
           faceToward(points.mid);
           anim.current.walking = false;
           anim.current.phase += dt * 2;
@@ -398,6 +406,8 @@ function buildRoute(fromSide, homeIdx, targetIdx, laneX, waitDepth = 0, opts = {
   };
 }
 
+export const MAX_PEDESTRIANS = 15;
+
 export const PEDESTRIAN_PRESETS = [
   { id: 'p1', color: '#3b82f6', speed: 1.7, fromSide: 'south', homeIdx: 2, targetIdx: 2, laneX: -0.15, waitDepth: 0, targetKind: 'house' },
   { id: 'p2', color: '#ec4899', speed: 1.5, fromSide: 'south', homeIdx: 1, targetIdx: 3, laneX: 0.55, waitDepth: 0, targetKind: 'house' },
@@ -413,10 +423,11 @@ export const PEDESTRIAN_PRESETS = [
   { id: 'p12', color: '#22c55e', speed: 1.48, fromSide: 'south', homeIdx: 1, targetIdx: 3, laneX: -1.35, waitDepth: 1, targetKind: 'mall' },
   { id: 'p13', color: '#fb7185', speed: 1.53, fromSide: 'north', homeIdx: 4, targetIdx: 1, laneX: -0.9, waitDepth: 0, targetKind: 'house' },
   { id: 'p14', color: '#2dd4bf', speed: 1.47, fromSide: 'south', homeIdx: 2, targetIdx: 4, laneX: 0.9, waitDepth: 1, targetKind: 'house' },
+  { id: 'p15', color: '#fbbf24', speed: 1.5, fromSide: 'south', homeIdx: 1, targetIdx: 2, laneX: -0.35, waitDepth: 0, targetKind: 'house' },
 ];
 
 export function makeInitialAgents() {
-  return PEDESTRIAN_PRESETS.map((p) => ({
+  return PEDESTRIAN_PRESETS.slice(0, MAX_PEDESTRIANS).map((p) => ({
     ...p,
     phase: 'hidden',
     ephemeral: false,
@@ -430,6 +441,18 @@ export function makeInitialAgents() {
     ),
     trip: 0,
   }));
+}
+
+/** Recorta la lista a 15; prioriza no-efímeros si hay que descartar. */
+export function clampAgents(list) {
+  if (!Array.isArray(list)) return makeInitialAgents();
+  if (list.length <= MAX_PEDESTRIANS) return list;
+  const permanent = list.filter((a) => !a.ephemeral);
+  const ephemeral = list.filter((a) => a.ephemeral);
+  if (permanent.length >= MAX_PEDESTRIANS) {
+    return permanent.slice(0, MAX_PEDESTRIANS);
+  }
+  return [...permanent, ...ephemeral].slice(0, MAX_PEDESTRIANS);
 }
 
 export function nextTripRoute(agent) {

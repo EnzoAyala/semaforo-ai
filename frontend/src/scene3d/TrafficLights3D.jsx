@@ -63,14 +63,21 @@ function VehicleSignal({
   faceX = -1,
   luzVehicular,
   tiempoRestante = 0,
+  forceTimer = false,
 }) {
   const armLen = 5.4;
   const armZ = armSign * (armLen * 0.5);
   const headZ = armSign * armLen;
   const headYaw = faceX > 0 ? Math.PI / 2 : -Math.PI / 2;
   const showTimer =
-    luzVehicular === 'ROJO' || luzVehicular === 'AMARILLO';
-  const timerColor = luzVehicular === 'AMARILLO' ? '#f59e0b' : '#ef4444';
+    forceTimer ||
+    luzVehicular === 'ROJO' ||
+    luzVehicular === 'AMARILLO';
+  const timerColor = forceTimer
+    ? '#38bdf8'
+    : luzVehicular === 'AMARILLO'
+      ? '#f59e0b'
+      : '#ef4444';
 
   return (
     <group position={position}>
@@ -161,7 +168,16 @@ export function TrafficLights3D({
   luzVehicular = 'VERDE',
   luzPeatonal = 'ROJO',
   tiempoRestante = 0,
+  modo = '',
 }) {
+  // En reposo 120s (COOLDOWN) el vehicular está verde: igual mostramos cuenta atrás
+  const vehicleSeconds =
+    modo === 'COOLDOWN' || luzVehicular === 'ROJO' || luzVehicular === 'AMARILLO'
+      ? tiempoRestante
+      : 0;
+  const vehicleForceTimer = modo === 'COOLDOWN';
+  const pedSeconds = luzPeatonal === 'VERDE' ? tiempoRestante : 0;
+
   return (
     <group>
       <VehicleSignal
@@ -169,39 +185,41 @@ export function TrafficLights3D({
         armSign={1}
         faceX={-1}
         luzVehicular={luzVehicular}
-        tiempoRestante={tiempoRestante}
+        tiempoRestante={vehicleSeconds}
+        forceTimer={vehicleForceTimer}
       />
       <VehicleSignal
         position={[3.4, 0, 7.15]}
         armSign={-1}
         faceX={1}
         luzVehicular={luzVehicular}
-        tiempoRestante={tiempoRestante}
+        tiempoRestante={vehicleSeconds}
+        forceTimer={vehicleForceTimer}
       />
 
       <PedSignal
         position={[-2.3, 0, 6.3]}
         yaw={0}
         luzPeatonal={luzPeatonal}
-        tiempoRestante={tiempoRestante}
+        tiempoRestante={pedSeconds}
       />
       <PedSignal
         position={[2.3, 0, 6.3]}
         yaw={0}
         luzPeatonal={luzPeatonal}
-        tiempoRestante={tiempoRestante}
+        tiempoRestante={pedSeconds}
       />
       <PedSignal
         position={[-2.3, 0, -6.3]}
         yaw={Math.PI}
         luzPeatonal={luzPeatonal}
-        tiempoRestante={tiempoRestante}
+        tiempoRestante={pedSeconds}
       />
       <PedSignal
         position={[2.3, 0, -6.3]}
         yaw={Math.PI}
         luzPeatonal={luzPeatonal}
-        tiempoRestante={tiempoRestante}
+        tiempoRestante={pedSeconds}
       />
     </group>
   );

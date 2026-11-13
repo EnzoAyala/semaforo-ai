@@ -14,8 +14,12 @@ const RESPAWN_GAP_S = 2.8;
 const ACCEL = 3.8;
 const BRAKE = 9.5;
 const HALF_LEN = 0.95;
-/** Zona de cebra entre líneas de detención ±3.4 */
-const ZEBRA_EDGE = 3.4;
+/** Línea de alto (coincide con Road StopLine ±3.2) */
+const STOP_LINE_ABS = 3.2;
+/** Extremo de la cebra (rayas ±1.7); margen extra para despeje */
+const ZEBRA_EDGE = 2.0;
+/** Anticipación de frenado al acercarse en rojo */
+const APPROACH_BRAKE_DIST = 14;
 
 export const LANES = {
   eastOuter: -4.4,
@@ -136,7 +140,16 @@ function LaneFleet({
   );
   const clockSynced = useRef(false);
   const saveAcc = useRef(0);
-  const stopLine = direction > 0 ? -3.4 : 3.4;
+  // Línea de alto ANTES de la cebra (mismo sentido que Road)
+  const stopLine = direction > 0 ? -STOP_LINE_ABS : STOP_LINE_ABS;
+  // Centro máximo/mínimo para que el parachoques quede detrás de la línea
+  const stopCenter =
+    direction > 0 ? stopLine - HALF_LEN - 0.12 : stopLine + HALF_LEN + 0.12;
+
+  const clampBeforeStop = (x) => {
+    if (direction > 0) return Math.min(x, stopCenter);
+    return Math.max(x, stopCenter);
+  };
 
   useFrame((state, delta) => {
     const now = state.clock.elapsedTime;
@@ -178,11 +191,15 @@ function LaneFleet({
 
       const frontX = next[i] + direction * HALF_LEN;
       const rearX = next[i] - direction * HALF_LEN;
-      const beforeStop =
-        direction > 0 ? frontX <= stopLine + 0.02 : frontX >= stopLine - 0.02;
-      // Ya despejó por completo el paso peatonal
+      // Comprometido solo si el frente ya pasó claramente la línea
+      const committed =
+        direction > 0
+          ? frontX > stopLine + 0.55
+          : frontX < stopLine - 0.55;
       const clearedZebra =
         direction > 0 ? rearX > ZEBRA_EDGE : rearX < -ZEBRA_EDGE;
+      const distToStop =
+        direction > 0 ? stopLine - frontX : frontX - stopLine;
 
       const gapAhead = leadGap(
         next[i],
@@ -194,40 +211,41 @@ function LaneFleet({
 
       let target = cars[i].speed;
       if (mustYield && !clearedZebra) {
-        if (beforeStop) {
-          // Rojo / fase peatonal: frenar ANTES de la línea, nunca en la cebra
+        if (!committed) {
+          // En rojo: siempre esperar ANTES de la cebra
           target = 0;
+          if (distToStop > 0 && distToStop < APPROACH_BRAKE_DIST) {
+            target = 0;
+          }
         } else {
-          // Ya cruzó la línea por accidente → seguir y despejar el paso
-          target = Math.max(cars[i].speed, 3.8);
+          // Ya entró: despejar rápido (no quedarse sobre las rayas)
+          target = Math.max(cars[i].speed, 4.2);
         }
       }
-      // No encimar al de adelante, salvo si estamos despejando la cebra
-      if (blockedByTraffic && !(mustYield && !beforeStop && !clearedZebra)) {
+      if (blockedByTraffic && !(mustYield && committed && !clearedZebra)) {
         target = 0;
       }
 
-      const rate = target < speeds.current[i] ? BRAKE : ACCEL;
+      const rate =
+        target < speeds.current[i]
+          ? mustYield && !committed
+            ? BRAKE * 1.35
+            : BRAKE
+          : ACCEL;
       speeds.current[i] += Math.sign(target - speeds.current[i]) * rate * dt;
       if (Math.abs(target - speeds.current[i]) < 0.05) speeds.current[i] = target;
       speeds.current[i] = Math.max(0, speeds.current[i]);
 
       next[i] += direction * speeds.current[i] * dt;
 
-      // Clamp: no entrar a la cebra mientras deba ceder y aún no la cruzó
-      if (mustYield && beforeStop) {
-        if (direction > 0) {
-          const maxCenter = stopLine - HALF_LEN;
-          if (next[i] > maxCenter) {
-            next[i] = maxCenter;
-            speeds.current[i] = 0;
-          }
-        } else {
-          const minCenter = stopLine + HALF_LEN;
-          if (next[i] < minCenter) {
-            next[i] = minCenter;
-            speeds.current[i] = 0;
-          }
+      // Clamp duro: no cruzar la línea si no está comprometido
+      if (mustYield && !committed && !clearedZebra) {
+        next[i] = clampBeforeStop(next[i]);
+        if (
+          (direction > 0 && next[i] >= stopCenter - 0.02) ||
+          (direction < 0 && next[i] <= stopCenter + 0.02)
+        ) {
+          speeds.current[i] = 0;
         }
       }
 
@@ -259,6 +277,24 @@ function LaneFleet({
       } else if (next[follow.i] < next[lead.i] + MIN_GAP) {
         next[follow.i] = next[lead.i] + MIN_GAP;
         speeds.current[follow.i] = Math.min(speeds.current[follow.i], speeds.current[lead.i]);
+      }
+
+      // En rojo el espaciado NO puede empujar a nadie pasado la línea de alto
+      if (mustYield) {
+        const fFront = next[follow.i] + direction * HALF_LEN;
+        const fCommitted =
+          direction > 0
+            ? fFront > stopLine + 0.55
+            : fFront < stopLine - 0.55;
+        if (!fCommitted) {
+          next[follow.i] = clampBeforeStop(next[follow.i]);
+          if (
+            (direction > 0 && next[follow.i] >= stopCenter - 0.02) ||
+            (direction < 0 && next[follow.i] <= stopCenter + 0.02)
+          ) {
+            speeds.current[follow.i] = 0;
+          }
+        }
       }
     }
 

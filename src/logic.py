@@ -128,6 +128,10 @@ class SemaforoInteligente:
         return max(0.0, self.tiempo_fin_fase - t)
 
     def obtener_resumen(self, tiempo_actual: Optional[float] = None) -> Dict[str, Any]:
+        """
+        Resumen alineado al flujo README:
+        REPOSO (PIR ON) → AMARILLO 3s → PEATONAL 60s → COOLDOWN 120s (PIR OFF) → REPOSO
+        """
         t = self._obtener_tiempo(tiempo_actual)
         self.actualizar_estado(t)
         return {
@@ -135,9 +139,12 @@ class SemaforoInteligente:
             "luz_vehicular": self.luz_vehicular.value,
             "luz_peatonal": self.luz_peatonal.value,
             "en_cooldown": self.modo == ModoEstado.COOLDOWN,
+            # Solo REPOSO acepta PIR/pulsador (detecciones en otras fases se ignoran)
+            "sensor_pir_activo": self.modo == ModoEstado.REPOSO,
             "permite_cruce": self.luz_peatonal == EstadoLuz.VERDE,
             "tiempo_restante_seg": round(self.tiempo_restante_fase(t), 2),
             "tiempo_actual": t,
+            "duracion_amarillo": self.duracion_amarillo,
             "duracion_rojo": self.duracion_rojo,
             "duracion_cooldown": self.duracion_cooldown,
         }
