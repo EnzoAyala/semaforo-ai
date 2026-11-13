@@ -7,6 +7,10 @@ export const useSemaforo = () => {
     luz_vehicular: 'VERDE',
     luz_peatonal: 'ROJO',
     tiempo_restante_seg: 0,
+    en_hora_pico: false,
+    franja_activa: null,
+    duracion_rojo: 60,
+    duracion_cooldown: 120,
   });
 
   const [mensaje, setMensaje] = useState('Conectando al semáforo en tiempo real…');
@@ -29,7 +33,6 @@ export const useSemaforo = () => {
 
         ws.onopen = () => {
           setMensaje('🟢 Conectado en tiempo real (WebSocket Multi-dispositivo)');
-          if (intervalFallback) clearInterval(intervalFallback);
         };
 
         ws.onmessage = (event) => {
@@ -42,26 +45,23 @@ export const useSemaforo = () => {
         };
 
         ws.onerror = () => {
-          setMensaje('⚠️ WebSocket no disponible. Usando modo consulta continua (HTTP)...');
-          activarFallbackHTTP();
+          setMensaje('⚠️ WebSocket inestable. Refrescando por HTTP…');
         };
 
         ws.onclose = () => {
-          activarFallbackHTTP();
+          setMensaje('⚠️ WebSocket cerrado. Reintentando…');
+          window.setTimeout(conectarWS, 1500);
         };
       } catch (err) {
-        activarFallbackHTTP();
+        window.setTimeout(conectarWS, 2000);
       }
     };
 
-    const activarFallbackHTTP = () => {
-      if (!intervalFallback) {
-        intervalFallback = setInterval(async () => {
-          const data = await semaforoService.obtenerEstado();
-          if (data) setEstado(data);
-        }, 1000);
-      }
-    };
+    // HTTP siempre como respaldo (asegura que el contador avance aunque el WS se cuelgue)
+    intervalFallback = setInterval(async () => {
+      const data = await semaforoService.obtenerEstado();
+      if (data) setEstado(data);
+    }, 1000);
 
     conectarWS();
 
@@ -71,19 +71,29 @@ export const useSemaforo = () => {
     };
   }, []);
 
+  const aplicarResumen = (resumen) => {
+    if (resumen && typeof resumen === 'object' && resumen.modo) {
+      setEstado((prev) => ({ ...prev, ...resumen }));
+    }
+  };
+
   const solicitarCruce = async () => {
     const res = await semaforoService.solicitarCruce();
+    if (res?.resumen) aplicarResumen(res.resumen);
     if (res && res.solicitud_aceptada) {
       setMensaje('🚶 Peatón detectado: Transición transmitida a la red');
     } else {
       setMensaje('⚠️ Solicitud RECHAZADA: El semáforo está activo o en Cooldown');
     }
+    return res;
   };
 
   return {
     estado,
     mensaje,
     setMensaje,
+    setEstado,
+    aplicarResumen,
     solicitarCruce,
   };
 };

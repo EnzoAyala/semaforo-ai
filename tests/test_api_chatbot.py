@@ -22,13 +22,13 @@ def test_endpoint_inyecta_estado_actual(monkeypatch):
         api.SolicitudChatbot(
             consulta=" ¿Puedo cruzar? ",
             proveedor="gemini",
-            api_key="clave-de-prueba",
+            api_key="clave-que-el-cliente-envie-se-ignora",
         )
     )
 
     assert llamada["consulta"] == "¿Puedo cruzar?"
     assert llamada["proveedor"] == "gemini"
-    assert llamada["api_key"] == "clave-de-prueba"
+    assert llamada["api_key"] is None
     assert llamada["estado"]["luz_peatonal"] in {"ROJO", "VERDE"}
     assert resultado["respuesta"] == "Debes esperar la luz peatonal verde."
     assert resultado["estado_semaforo"] == llamada["estado"]
@@ -39,6 +39,27 @@ def test_endpoint_rechaza_consulta_vacia():
         api.consultar_chatbot(api.SolicitudChatbot(consulta="  "))
 
     assert error.value.status_code == 422
+
+
+def test_endpoint_responde_fuera_de_ambito_sin_proveedor(monkeypatch):
+    from src.ai_assistant import ConsultaFueraDeAmbitoError, MENSAJE_FUERA_DE_AMBITO
+
+    def responder_ambito(*_args, **_kwargs):
+        raise ConsultaFueraDeAmbitoError(MENSAJE_FUERA_DE_AMBITO)
+
+    monkeypatch.setattr(api, "responder_consulta", responder_ambito)
+
+    resultado = api.consultar_chatbot(
+        api.SolicitudChatbot(
+            consulta="Cuéntame un chiste de políticos",
+            proveedor="gemini",
+            api_key="clave",
+        )
+    )
+
+    assert resultado["fuera_de_ambito"] is True
+    assert "SemaforoIA" in resultado["respuesta"]
+
 
 
 def test_endpoint_confirma_conexion_gemini(monkeypatch):

@@ -10,3 +10,4 @@ pyserial
 sqlalchemy
 psycopg[binary]
 httpx
+beautifulsoup4

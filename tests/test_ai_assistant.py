@@ -4,7 +4,13 @@ from types import SimpleNamespace
 
 import pytest
 
-from src.ai_assistant import responder_consulta, validar_conexion
+from src.ai_assistant import (
+    ConsultaFueraDeAmbitoError,
+    MENSAJE_FUERA_DE_AMBITO,
+    consulta_relacionada_al_proyecto,
+    responder_consulta,
+    validar_conexion,
+)
 
 
 class CompletionsFalsas:
@@ -38,6 +44,26 @@ def test_inyecta_estado_del_semaforo_en_el_prompt():
 def test_rechaza_consulta_vacia():
     with pytest.raises(ValueError, match="vacía"):
         responder_consulta("   ", {}, cliente=object())
+
+
+def test_filtro_ambito_acepta_proyecto_y_rechaza_ajeno():
+    assert consulta_relacionada_al_proyecto("¿Puedo cruzar ahora?") is True
+    assert consulta_relacionada_al_proyecto("hola") is True
+    assert consulta_relacionada_al_proyecto("Dame una receta de pasta") is False
+    assert consulta_relacionada_al_proyecto("¿Quién ganó el mundial?") is False
+
+
+def test_rechaza_consulta_fuera_de_ambito_sin_llamar_proveedor():
+    with pytest.raises(ConsultaFueraDeAmbitoError, match="SemaforoIA"):
+        responder_consulta(
+            "Explícame la fotosíntesis en detalle",
+            {"luz_peatonal": "ROJO"},
+            cliente=object(),
+        )
+
+
+def test_mensaje_fuera_de_ambito_es_claro():
+    assert "SemaforoIA" in MENSAJE_FUERA_DE_AMBITO
 
 
 def test_admite_responses_api_de_xai():
@@ -84,7 +110,7 @@ def test_valida_gemini_con_una_generacion_minima(monkeypatch):
         lambda _api_key: cliente,
     )
 
-    assert validar_conexion("gemini", "clave-de-prueba") == "gemini-3.6-flash"
+    assert validar_conexion("gemini", "clave-de-prueba-1234567890") == "gemini-3.6-flash"
 
 
 def test_clave_aq_prueba_vertex_express_como_fallback(monkeypatch):
@@ -104,4 +130,4 @@ def test_clave_aq_prueba_vertex_express_como_fallback(monkeypatch):
         lambda _api_key, vertexai=False: cliente_vertex if vertexai else cliente_developer,
     )
 
-    assert validar_conexion("gemini", "AQ.clave-de-prueba") == "gemini-3.6-flash"
+    assert validar_conexion("gemini", "AQ.clave-de-prueba-1234567890") == "gemini-3.6-flash"

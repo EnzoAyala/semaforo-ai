@@ -28,5 +28,14 @@ INSERT INTO sensor_health (id, bridge_connected)
 VALUES (1, FALSE)
 ON CONFLICT (id) DO NOTHING;
 
+CREATE TABLE IF NOT EXISTS email_subscriptions (
+    id SERIAL PRIMARY KEY,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    cancelled_at TIMESTAMPTZ
+);
+
 CREATE INDEX IF NOT EXISTS idx_sensor_events_timestamp ON sensor_events (timestamp DESC);
 CREATE INDEX IF NOT EXISTS idx_state_changes_timestamp ON state_changes (timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_email_subscriptions_active ON email_subscriptions (active);

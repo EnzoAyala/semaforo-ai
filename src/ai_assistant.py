@@ -9,6 +9,76 @@ MODELO_GROQ_DEFAULT = "llama-3.3-70b-versatile"
 MODELO_XAI_DEFAULT = "grok-4.7"
 MODELO_GEMINI_DEFAULT = "gemini-3.6-flash"
 
+MENSAJE_FUERA_DE_AMBITO = (
+    "Solo puedo ayudarte con SemaforoIA: estado del semáforo, cruce peatonal, "
+    "sensores, cooldown, bridge/Arduino, historial, alertas y uso del dashboard. "
+    "Reformula tu pregunta sobre el proyecto."
+)
+
+_TERMINOS_PROYECTO = (
+    "semaforo",
+    "semáforo",
+    "semaforoia",
+    "peaton",
+    "peatón",
+    "peatonal",
+    "cruzar",
+    "cruce",
+    "pasar",
+    "luz",
+    "luces",
+    "verde",
+    "rojo",
+    "amarillo",
+    "reposo",
+    "cooldown",
+    "sensor",
+    "pir",
+    "arduino",
+    "bridge",
+    "boton",
+    "botón",
+    "pulsador",
+    "tiempo",
+    "restante",
+    "estado",
+    "modo",
+    "transito",
+    "tránsito",
+    "trafico",
+    "tráfico",
+    "vehicular",
+    "iot",
+    "dashboard",
+    "historial",
+    "alerta",
+    "correo",
+    "email",
+    "pico",
+    "franja",
+    "sistema",
+    "proyecto",
+    "plataforma",
+    "funcion",
+    "función",
+    "funciona",
+    "esperar",
+    "seguro",
+)
+
+_SALUDOS_CORTOS = (
+    "hola",
+    "buenas",
+    "buenos",
+    "hey",
+    "hi",
+    "hello",
+    "gracias",
+    "thanks",
+    "ayuda",
+    "help",
+)
+
 
 class ConfiguracionIAError(RuntimeError):
     """La configuración requerida para usar el asistente no está disponible."""
@@ -16,6 +86,42 @@ class ConfiguracionIAError(RuntimeError):
 
 class ServicioIAError(RuntimeError):
     """El servicio de IA no pudo generar una respuesta válida."""
+
+
+class ConsultaFueraDeAmbitoError(ValueError):
+    """La consulta no está relacionada con SemaforoIA."""
+
+
+def consulta_relacionada_al_proyecto(consulta: str) -> bool:
+    """Filtro en servidor: solo deja pasar temas del proyecto o saludos cortos."""
+    texto = " ".join(consulta.lower().split())
+    if not texto:
+        return False
+    if len(texto) <= 40 and any(s in texto for s in _SALUDOS_CORTOS):
+        return True
+    return any(term in texto for term in _TERMINOS_PROYECTO)
+
+
+def _prompt_sistema(estado_json: str) -> str:
+    return (
+        "Eres el asistente oficial de SemaforoIA, un sistema IoT de control peatonal.\n"
+        "ÁMBITO PERMITIDO (únicamente):\n"
+        "- Estado del semáforo (modo, luces vehicular/peatonal, tiempo restante, cooldown).\n"
+        "- Si el peatón puede cruzar según el estado actual.\n"
+        "- Sensores PIR/pulsador, bridge serial, Arduino, dashboard, historial y alertas email.\n"
+        "- Horarios pico / política de tiempos del propio sistema.\n"
+        "- Cómo usar SemaforoIA a alto nivel.\n"
+        "REGLAS ESTRICTAS:\n"
+        "1) Responde siempre en español, breve y claro.\n"
+        "2) Usa el JSON de estado como única fuente de verdad sobre luces y tiempos.\n"
+        "3) Nunca digas que es seguro cruzar salvo que permite_cruce sea true y luz_peatonal sea VERDE. "
+        "Recuerda observar también el entorno real.\n"
+        "4) Si la pregunta NO trata del ámbito permitido, responde EXACTAMENTE este texto y nada más:\n"
+        f"\"{MENSAJE_FUERA_DE_AMBITO}\"\n"
+        "5) No respondas recetas, deberes, programación general, clima, noticias, opiniones "
+        "ni ningún tema ajeno al proyecto.\n"
+        f"Estado actual del sistema: {estado_json}"
+    )
 
 
 def _crear_cliente_groq(api_key: Optional[str] = None):
@@ -154,21 +260,14 @@ def responder_consulta(
     if not pregunta:
         raise ValueError("La consulta no puede estar vacía.")
 
+    if not consulta_relacionada_al_proyecto(pregunta):
+        raise ConsultaFueraDeAmbitoError(MENSAJE_FUERA_DE_AMBITO)
+
     estado_json = json.dumps(estado_semaforo, ensure_ascii=False)
+    sistema = _prompt_sistema(estado_json)
 
     mensajes = [
-        {
-            "role": "system",
-            "content": (
-                "Eres el asistente de SemaforoIA, un sistema de control peatonal. "
-                "Responde en español, de forma breve, clara y útil. Usa el estado "
-                "del semáforo incluido abajo como la fuente de verdad para preguntas "
-                "sobre luces, cruce o tiempo restante. Nunca indiques que es seguro "
-                "cruzar salvo que 'permite_cruce' sea true y la luz peatonal sea VERDE. "
-                "Aclara que el usuario debe observar el entorno y las señales físicas. "
-                f"Estado actual: {estado_json}"
-            ),
-        },
+        {"role": "system", "content": sistema},
         {"role": "user", "content": pregunta},
     ]
 
@@ -177,9 +276,7 @@ def responder_consulta(
             completion = _generar_gemini(
                 api_key=api_key,
                 modelo=os.getenv("GEMINI_MODEL", MODELO_GEMINI_DEFAULT),
-                contenido=(
-                    f"{mensajes[0]['content']}\n\nConsulta del usuario: {pregunta}"
-                ),
+                contenido=f"{sistema}\n\nConsulta del usuario: {pregunta}",
                 cliente=cliente,
             )
             respuesta = completion.text
@@ -196,13 +293,13 @@ def responder_consulta(
             completion = cliente_groq.chat.completions.create(
                 model=os.getenv("GROQ_MODEL", MODELO_GROQ_DEFAULT),
                 messages=mensajes,
-                temperature=0.2,
+                temperature=0.1,
                 max_completion_tokens=350,
             )
             respuesta = completion.choices[0].message.content
         else:
             raise ValueError("Proveedor de IA no compatible.")
-    except (ConfiguracionIAError, ValueError):
+    except (ConfiguracionIAError, ValueError, ConsultaFueraDeAmbitoError):
         raise
     except Exception as exc:
         modelo = {
@@ -225,10 +322,12 @@ def responder_consulta(
 
 
 def validar_conexion(proveedor: str, api_key: str) -> str:
-    """Comprueba la clave haciendo una generación mínima con el modelo elegido."""
+    """Comprueba la clave en el servidor con una generación mínima real."""
     clave = api_key.strip()
     if not clave:
         raise ConfiguracionIAError("Ingresa una API key para validarla.")
+    if len(clave) < 20 or len(clave) > 2048:
+        raise ConfiguracionIAError("La API key no tiene un formato válido.")
 
     try:
         if proveedor == "gemini":

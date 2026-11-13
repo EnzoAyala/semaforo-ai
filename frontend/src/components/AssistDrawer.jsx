@@ -1,28 +1,29 @@
 import { X } from 'lucide-react';
 import { Chatbot } from './Chatbot';
-import { EmailAlertCard } from './EmailAlertCard';
+import { PeakHoursCard } from './PeakHoursCard';
 
-export function AssistDrawer({ open, onClose, modo, onNotificar }) {
-  if (!open) return null;
-
+export function AssistDrawer({ open, onClose, onNotificar }) {
   return (
-    <div className="drawer-root" role="dialog" aria-modal="true" aria-label="Asistente y alertas">
-      <button type="button" className="drawer-backdrop" aria-label="Cerrar" onClick={onClose} />
-      <aside className="drawer-panel assist-drawer">
+    <aside
+      className={`side-panel assist-panel ${open ? 'is-open' : ''}`}
+      aria-hidden={!open}
+      aria-label="Asistente SemaforoIA"
+    >
+      <div className="side-panel-inner">
         <div className="drawer-head">
           <div>
             <h2>Asistente</h2>
-            <p>Chatbot y envío de alertas por correo</p>
+            <p>Chat del proyecto y horarios pico</p>
           </div>
           <button type="button" className="icon-btn" onClick={onClose} aria-label="Cerrar panel">
             <X size={20} />
           </button>
         </div>
-        <div className="drawer-body">
+        <div className="drawer-body assist-body">
           <Chatbot compact />
-          <EmailAlertCard modo={modo} onNotificar={onNotificar} compact />
+          <PeakHoursCard compact onNotificar={onNotificar} />
         </div>
-      </aside>
-    </div>
+      </div>
+    </aside>
   );
 }

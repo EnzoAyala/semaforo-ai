@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory = $true, Position = 0)]
-    [ValidateSet('app', 'test', 'api', 'bridge', 'compose', 'start')]
+    [ValidateSet('app', 'test', 'api', 'bridge', 'compose', 'start', 'start-arduino', 'start-sin-arduino')]
     [string]$Mode,
 
     [Parameter(ValueFromRemainingArguments = $true)]
@@ -32,7 +32,13 @@ try {
             & docker compose up --build @CommandArgs
         }
         'start' {
-            & powershell -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'start.ps1') @CommandArgs
+            & powershell -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'start-sin-arduino.ps1') @CommandArgs
+        }
+        'start-sin-arduino' {
+            & powershell -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'start-sin-arduino.ps1') @CommandArgs
+        }
+        'start-arduino' {
+            & powershell -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'start-arduino.ps1') @CommandArgs
         }
     }
 

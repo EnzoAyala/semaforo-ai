@@ -109,6 +109,17 @@ class SemaforoInteligente:
 
         return self.modo
 
+    def aplicar_duraciones(
+        self,
+        duracion_rojo: Optional[float] = None,
+        duracion_cooldown: Optional[float] = None,
+    ) -> None:
+        """Ajusta tiempos base (p. ej. política de hora pico). Afecta fases futuras."""
+        if duracion_rojo is not None:
+            self.duracion_rojo = float(duracion_rojo)
+        if duracion_cooldown is not None:
+            self.duracion_cooldown = float(duracion_cooldown)
+
     def tiempo_restante_fase(self, tiempo_actual: Optional[float] = None) -> float:
         t = self._obtener_tiempo(tiempo_actual)
         self.actualizar_estado(t)
@@ -126,7 +137,9 @@ class SemaforoInteligente:
             "en_cooldown": self.modo == ModoEstado.COOLDOWN,
             "permite_cruce": self.luz_peatonal == EstadoLuz.VERDE,
             "tiempo_restante_seg": round(self.tiempo_restante_fase(t), 2),
-            "tiempo_actual": t
+            "tiempo_actual": t,
+            "duracion_rojo": self.duracion_rojo,
+            "duracion_cooldown": self.duracion_cooldown,
         }
 
 

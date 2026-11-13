@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Boletín público de tránsito — SemaforoIA</title>
+  <style>
+    body { font-family: Georgia, serif; max-width: 720px; margin: 2rem auto; padding: 0 1rem; color: #1a1a1a; }
+    h1 { font-size: 1.6rem; }
+    .meta { color: #555; font-size: 0.95rem; }
+    article.horario-pico {
+      border: 1px solid #ccc; border-left: 4px solid #c47a00; padding: 1rem; margin: 1rem 0;
+    }
+    article.horario-pico h2 { margin: 0 0 0.4rem; font-size: 1.15rem; }
+    .politica { background: #f7f7f7; padding: 0.75rem 1rem; margin-top: 1.5rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Boletín público de horarios pico</h1>
+    <p class="meta">
+      Zona: <span id="zona">Lima, Perú</span> ·
+      Zona horaria: <span id="tz">America/Lima</span> ·
+      Fuente municipal simulada para automatización IoT
+    </p>
+  </header>
+
+  <main>
+    <p>
+      Franjas de alta circulación vehicular. Los sistemas de control peatonal
+      deben priorizar el flujo de vehículos en estos intervalos.
+    </p>
+
+    <!-- El bot parsea cada article.horario-pico -->
+    <article
+      class="horario-pico"
+      data-nombre="Pico mañana"
+      data-inicio="07:00"
+      data-fin="09:00"
+      data-duracion-rojo="45"
+      data-duracion-cooldown="180"
+    >
+      <h2>Pico mañana</h2>
+      <p>Intervalo: <span class="rango">07:00 – 09:00</span></p>
+      <p>Política: fase peatonal 45s · cooldown vehicular 180s</p>
+    </article>
+
+    <article
+      class="horario-pico"
+      data-nombre="Pico tarde"
+      data-inicio="17:00"
+      data-fin="19:00"
+      data-duracion-rojo="45"
+      data-duracion-cooldown="180"
+    >
+      <h2>Pico tarde</h2>
+      <p>Intervalo: <span class="rango">17:00 – 19:00</span></p>
+      <p>Política: fase peatonal 45s · cooldown vehicular 180s</p>
+    </article>
+
+    <div
+      class="politica"
+      id="politica-fuera-pico"
+      data-duracion-rojo="60"
+      data-duracion-cooldown="120"
+    >
+      <strong>Fuera de hora pico:</strong>
+      fase peatonal 60s · cooldown 120s (valores base del sistema).
+    </div>
+  </main>
+</body>
+</html>

@@ -209,16 +209,17 @@ export function HistoryModal({ open, onClose, refreshKey = 0 }) {
     return buckets.map(({ label, y }) => ({ label, y }));
   }, [estados]);
 
-  if (!open) return null;
-
   return (
-    <div className="modal-root" role="dialog" aria-modal="true" aria-label="Registro IoT">
-      <button type="button" className="drawer-backdrop" aria-label="Cerrar" onClick={onClose} />
-      <div className="modal-panel">
+    <aside
+      className={`side-panel data-panel ${open ? 'is-open' : ''}`}
+      aria-hidden={!open}
+      aria-label="Registro IoT"
+    >
+      <div className="side-panel-inner data-panel-inner">
         <div className="drawer-head">
           <div>
             <h2>Registro IoT</h2>
-            <p>Captura → almacenamiento PostgreSQL → visualización</p>
+            <p>Captura → almacenamiento → visualización</p>
           </div>
           <div className="modal-head-actions">
             <span className={`bridge-badge ${salud?.bridge_connected ? 'ok' : 'off'}`}>
@@ -232,13 +233,12 @@ export function HistoryModal({ open, onClose, refreshKey = 0 }) {
 
         {error && <p className="history-error">{error}</p>}
 
-        <div className="modal-grid">
+        <div className="modal-grid drawer-body">
           <section className="modal-card modal-card-wide">
             <h3>Actividad peatonal (últimas 12 horas)</h3>
             <p className="chart-help">
               La curva <strong>sube</strong> cuando hubo cruces: cada unidad es una vez que el
-              semáforo peatonal pasó a <strong>verde</strong>. Eje vertical = cantidad de cruces;
-              eje horizontal = hora.
+              semáforo peatonal pasó a <strong>verde</strong>.
             </p>
             <AreaChart puntos={actividadPeatonal} yLabel="Cruces (verde peatonal)" />
           </section>
@@ -296,6 +296,6 @@ export function HistoryModal({ open, onClose, refreshKey = 0 }) {
           </section>
         </div>
       </div>
-    </div>
+    </aside>
   );
 }

@@ -4,7 +4,8 @@ import { semaforoService } from '../services/api';
 
 const MENSAJE_INICIAL = {
   autor: 'asistente',
-  texto: 'Hola, soy el asistente de SemaforoIA. Pregúntame por el estado del semáforo o cuándo puedes cruzar.',
+  texto:
+    'Hola, soy el asistente de SemaforoIA. Solo respondo sobre el semáforo, el cruce peatonal y el sistema. Pregunta, por ejemplo: ¿puedo cruzar ahora?',
 };
 
 export function Chatbot({ compact = false }) {
@@ -13,30 +14,9 @@ export function Chatbot({ compact = false }) {
   const [enviando, setEnviando] = useState(false);
   const [grabando, setGrabando] = useState(false);
   const [transcribiendo, setTranscribiendo] = useState(false);
-  const [apiKey, setApiKey] = useState('');
-  const [conexion, setConexion] = useState(null);
 
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
-
-  const tieneFormatoGemini = (clave) =>
-    /^(AQ\.|AIza)[A-Za-z0-9_-]{20,}$/.test(clave.trim());
-
-  const cambiarApiKey = (event) => {
-    setApiKey(event.target.value);
-    setConexion(null);
-  };
-
-  const validarApiKey = () => {
-    const formatoValido = tieneFormatoGemini(apiKey);
-    setConexion({
-      ok: formatoValido,
-      conectado: false,
-      texto: formatoValido
-        ? 'Formato válido. La conexión se comprobará al enviar el primer mensaje o nota de voz.'
-        : 'La clave debe comenzar con AQ. o AIza.',
-    });
-  };
 
   const iniciarGrabacion = async () => {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -47,15 +27,6 @@ export function Chatbot({ compact = false }) {
           texto: 'Tu navegador no admite la captura de audio por micrófono.',
         },
       ]);
-      return;
-    }
-
-    if (!apiKey.trim()) {
-      setConexion({
-        ok: false,
-        conectado: false,
-        texto: 'Ingresa tu API key de Gemini antes de usar la transcripción de voz.',
-      });
       return;
     }
 
@@ -97,17 +68,9 @@ export function Chatbot({ compact = false }) {
 
         setTranscribiendo(true);
         try {
-          const resultado = await semaforoService.transcribirAudio(
-            audioBlob,
-            apiKey.trim()
-          );
+          const resultado = await semaforoService.transcribirAudio(audioBlob);
           if (resultado && resultado.texto) {
             setConsulta(resultado.texto);
-            setConexion({
-              ok: true,
-              conectado: true,
-              texto: 'Voz transcrita exitosamente con Gemini Flash',
-            });
           }
         } catch (error) {
           setMensajes((actuales) => [
@@ -152,26 +115,13 @@ export function Chatbot({ compact = false }) {
     event.preventDefault();
     const texto = consulta.trim();
     if (!texto || enviando) return;
-    if (!tieneFormatoGemini(apiKey)) {
-      setConexion({
-        ok: false,
-        conectado: false,
-        texto: 'Revisa el formato de la API key de Gemini.',
-      });
-      return;
-    }
 
     setMensajes((actuales) => [...actuales, { autor: 'usuario', texto }]);
     setConsulta('');
     setEnviando(true);
 
     try {
-      const data = await semaforoService.consultarChatbot(texto, apiKey.trim());
-      setConexion({
-        ok: true,
-        conectado: true,
-        texto: 'Conectado a Google Gemini · gemini-3.6-flash',
-      });
+      const data = await semaforoService.consultarChatbot(texto);
       setMensajes((actuales) => [
         ...actuales,
         { autor: 'asistente', texto: data.respuesta },
@@ -186,12 +136,14 @@ export function Chatbot({ compact = false }) {
     }
   };
 
+  const ocupado = enviando || grabando || transcribiendo;
+
   return (
     <section className={`chatbot-card ${compact ? 'chatbot-compact' : ''}`} aria-labelledby="chatbot-title">
       <div className="chatbot-header">
         <div>
           <h2 id="chatbot-title">Asistente</h2>
-          <p>Gemini + estado del semáforo</p>
+          <p>Solo temas de SemaforoIA</p>
         </div>
         <span className="chatbot-online">Gemini</span>
       </div>
@@ -210,40 +162,6 @@ export function Chatbot({ compact = false }) {
         )}
       </div>
 
-      <div className="chatbot-config">
-        <label className="chatbot-key-label" htmlFor="chatbot-api-key">
-          API key de Google Gemini
-          <input
-            id="chatbot-api-key"
-            type="password"
-            value={apiKey}
-            onChange={cambiarApiKey}
-            placeholder="AQ.… o AIza…"
-            autoComplete="off"
-            disabled={enviando || grabando || transcribiendo}
-          />
-        </label>
-        <button
-          className="btn btn-secondary chatbot-validate"
-          type="button"
-          onClick={validarApiKey}
-          disabled={!apiKey.trim() || enviando || grabando || transcribiendo}
-        >
-          Revisar clave
-        </button>
-        <small>
-          La revisión local no consume cuota. Puedes escribir o dictar por voz usando el micrófono.
-        </small>
-        {conexion && (
-          <div
-            className={`connection-status ${conexion.ok ? 'connected' : 'disconnected'}`}
-            role="status"
-          >
-            {conexion.conectado ? '● ' : conexion.ok ? '✓ ' : '⚠ '}{conexion.texto}
-          </div>
-        )}
-      </div>
-
       <form className="chatbot-form" onSubmit={enviarConsulta}>
         <label className="sr-only" htmlFor="chatbot-consulta">
           Consulta para el asistente
@@ -254,24 +172,22 @@ export function Chatbot({ compact = false }) {
           onChange={(event) => setConsulta(event.target.value)}
           placeholder={
             grabando
-              ? '🎙️ Grabando audio... Haz clic en el botón rojo para detener.'
+              ? '🎙️ Grabando… pulsa el botón rojo para detener.'
               : transcribiendo
-              ? '⌛ Gemini transcribiendo tu audio...'
-              : 'Ej.: ¿Puedo cruzar ahora? o pulsa el micrófono'
+              ? '⌛ Transcribiendo…'
+              : 'Ej.: ¿Puedo cruzar ahora?'
           }
           maxLength={1000}
-          disabled={enviando || grabando || transcribiendo}
+          disabled={ocupado}
         />
         <button
           className={`btn btn-mic ${grabando ? 'btn-mic-recording' : ''}`}
           type="button"
           onClick={alternarGrabacion}
-          disabled={enviando || transcribiendo || !apiKey.trim()}
+          disabled={enviando || transcribiendo}
           title={
-            !apiKey.trim()
-              ? 'Ingresa tu API key de Gemini para habilitar el micrófono'
-              : grabando
-              ? 'Detener grabación y transcribir con Gemini'
+            grabando
+              ? 'Detener y transcribir'
               : 'Dictar consulta por voz'
           }
           aria-label={grabando ? 'Detener grabación' : 'Iniciar grabación de voz'}
@@ -287,7 +203,7 @@ export function Chatbot({ compact = false }) {
         <button
           className="btn btn-primary"
           type="submit"
-          disabled={enviando || grabando || transcribiendo || !consulta.trim() || !apiKey.trim()}
+          disabled={ocupado || !consulta.trim()}
         >
           Enviar
         </button>

@@ -65,11 +65,26 @@ class SensorHealth(Base):
     bridge_connected: Mapped[bool] = mapped_column(Boolean, default=False)
 
 
+class EmailSubscription(Base):
+    __tablename__ = "email_subscriptions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+    cancelled_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+
 _engine = None
 _SessionLocal = None
 _memory_mode = False
 _memory_events: List[Dict[str, Any]] = []
 _memory_states: List[Dict[str, Any]] = []
+_memory_subscriptions: List[Dict[str, Any]] = []
 _memory_health: Dict[str, Any] = {
     "bridge_connected": False,
     "last_heartbeat": None,
@@ -78,6 +93,7 @@ _memory_health: Dict[str, Any] = {
 }
 _event_id = 0
 _state_id = 0
+_sub_id = 0
 
 
 def get_database_url() -> str:
@@ -347,11 +363,129 @@ def obtener_salud_sensor() -> Dict[str, Any]:
         }
 
 
+def _normalizar_email(email: str) -> str:
+    return email.strip().lower()
+
+
+def suscribir_email(email: str) -> Dict[str, Any]:
+    """Alta o reactivación de una suscripción de alertas automáticas."""
+    global _sub_id
+    correo = _normalizar_email(email)
+    if not correo or "@" not in correo:
+        raise ValueError("Correo electrónico inválido")
+    now = datetime.now(timezone.utc)
+
+    if _memory_mode:
+        for row in _memory_subscriptions:
+            if row["email"] == correo:
+                row["active"] = True
+                row["cancelled_at"] = None
+                row["created_at"] = row.get("created_at") or _dt_iso(now)
+                return dict(row)
+        _sub_id += 1
+        row = {
+            "id": _sub_id,
+            "email": correo,
+            "active": True,
+            "created_at": _dt_iso(now),
+            "cancelled_at": None,
+        }
+        _memory_subscriptions.insert(0, row)
+        return dict(row)
+
+    with session_scope() as session:
+        if session is None:
+            raise RuntimeError("Sesión de base de datos no disponible")
+        existing = session.scalar(
+            select(EmailSubscription).where(EmailSubscription.email == correo)
+        )
+        if existing is not None:
+            existing.active = True
+            existing.cancelled_at = None
+            session.flush()
+            return {
+                "id": existing.id,
+                "email": existing.email,
+                "active": existing.active,
+                "created_at": _dt_iso(existing.created_at),
+                "cancelled_at": _dt_iso(existing.cancelled_at),
+            }
+        sub = EmailSubscription(email=correo, active=True, created_at=now)
+        session.add(sub)
+        session.flush()
+        return {
+            "id": sub.id,
+            "email": sub.email,
+            "active": sub.active,
+            "created_at": _dt_iso(sub.created_at),
+            "cancelled_at": None,
+        }
+
+
+def cancelar_suscripcion_email(email: str) -> Optional[Dict[str, Any]]:
+    correo = _normalizar_email(email)
+    now = datetime.now(timezone.utc)
+
+    if _memory_mode:
+        for row in _memory_subscriptions:
+            if row["email"] == correo and row["active"]:
+                row["active"] = False
+                row["cancelled_at"] = _dt_iso(now)
+                return dict(row)
+        return None
+
+    with session_scope() as session:
+        if session is None:
+            return None
+        existing = session.scalar(
+            select(EmailSubscription).where(EmailSubscription.email == correo)
+        )
+        if existing is None or not existing.active:
+            return None
+        existing.active = False
+        existing.cancelled_at = now
+        session.flush()
+        return {
+            "id": existing.id,
+            "email": existing.email,
+            "active": existing.active,
+            "created_at": _dt_iso(existing.created_at),
+            "cancelled_at": _dt_iso(existing.cancelled_at),
+        }
+
+
+def listar_suscripciones_email(solo_activas: bool = True) -> List[Dict[str, Any]]:
+    if _memory_mode:
+        rows = _memory_subscriptions
+        if solo_activas:
+            rows = [r for r in rows if r.get("active")]
+        return [dict(r) for r in rows]
+
+    with session_scope() as session:
+        if session is None:
+            return []
+        stmt = select(EmailSubscription).order_by(EmailSubscription.created_at.desc())
+        if solo_activas:
+            stmt = stmt.where(EmailSubscription.active.is_(True))
+        subs = session.scalars(stmt).all()
+        return [
+            {
+                "id": s.id,
+                "email": s.email,
+                "active": s.active,
+                "created_at": _dt_iso(s.created_at),
+                "cancelled_at": _dt_iso(s.cancelled_at),
+            }
+            for s in subs
+        ]
+
+
 def reset_memory_store() -> None:
     """Utilidad para tests en modo memoria."""
-    global _event_id, _state_id
+    global _event_id, _state_id, _sub_id
     _memory_events.clear()
     _memory_states.clear()
+    _memory_subscriptions.clear()
     _memory_health.update(
         {
             "bridge_connected": False,
@@ -362,6 +496,7 @@ def reset_memory_store() -> None:
     )
     _event_id = 0
     _state_id = 0
+    _sub_id = 0
 
 
 def is_memory_mode() -> bool:
