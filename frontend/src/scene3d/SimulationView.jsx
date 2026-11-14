@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Maximize, Minimize } from 'lucide-react';
 import { StreetScene } from './StreetScene';
-import { StatusBanner } from '../components/StatusBanner';
+import { StatusBanner } from '../components/layout/StatusBanner';
 import { semaforoService } from '../services/api';
 import {
   makeInitialAgents,
@@ -9,14 +9,14 @@ import {
   nextTripRoute,
   clampAgents,
   MAX_PEDESTRIANS,
-} from './Pedestrian';
+} from './agents/pedestrianAgents';
 import { AMBIENCE_OPTIONS } from './atmosphere';
 import {
   hydrateSimStore,
   patchSimStore,
   readSimStore,
   subscribeSimStore,
-} from './simPersistence';
+} from './persistence/simPersistence';
 import {
   descripcionModo,
   labelModo,

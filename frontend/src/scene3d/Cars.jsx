@@ -5,7 +5,7 @@ import {
   pedestriansOnCrosswalk,
   publishBucket,
 } from './vehicleRegistry';
-import { patchSimStore, readSimStore } from './simPersistence';
+import { patchSimStore, readSimStore } from './persistence/simPersistence';
 
 const MIN_GAP = 4.2;
 const TRACK_MIN = -26;

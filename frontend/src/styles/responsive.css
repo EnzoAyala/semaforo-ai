@@ -1,0 +1,86 @@
+/* Tablets / pantallas angostas: panel debajo, sin romper el viewport */
+@media (max-width: 960px) {
+  .stage {
+    --panel-assist-w: min(100%, 100vw);
+    --panel-sub-w: min(100%, 100vw);
+    --panel-data-w: min(100%, 100vw);
+    --stage-pad-bottom: clamp(4.25rem, 11vh, 5.25rem);
+  }
+
+  .stage-shell {
+    flex-direction: column;
+  }
+
+  .stage-topbar {
+    flex-direction: column;
+  }
+
+  .status-pills {
+    justify-content: flex-start;
+  }
+
+  .state-timeline li {
+    grid-template-columns: 1fr;
+  }
+
+  .side-panel.is-open {
+    flex: 0 0 min(58dvh, 34rem);
+    width: 100%;
+    max-width: 100%;
+    padding-left: 0;
+    padding-top: 0.65rem;
+  }
+
+  .side-panel-inner,
+  .data-panel-inner {
+    width: 100%;
+    height: min(58dvh, 34rem);
+    max-height: min(58dvh, 34rem);
+    transform: translateY(16px);
+  }
+
+  .side-panel.is-open .side-panel-inner {
+    transform: translateY(0);
+  }
+
+  .stage-panel-open .fab-stack {
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: max(0.45rem, env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* Móviles */
+@media (max-width: 600px) {
+  .stage {
+    --lens-size: clamp(2.4rem, min(8.5vh, 18vw), 4rem);
+    --lights-gap: clamp(0.75rem, 4vw, 1.5rem);
+    --stage-pad-bottom: 4.75rem;
+  }
+
+  .fab span {
+    display: none;
+  }
+
+  .fab {
+    padding: 0.9rem;
+  }
+}
+
+/* Pantallas muy bajas (netbooks / laptop con barra grande) */
+@media (max-height: 720px) {
+  .stage {
+    --lens-size: clamp(2.25rem, 7.5vh, 3.75rem);
+    --stem-h: clamp(0.7rem, 2.2vh, 1.5rem);
+    --main-gap: clamp(0.35rem, 1.2vh, 0.75rem);
+    --stage-pad-bottom: 4.25rem;
+  }
+}
+
+/* Monitores grandes: no crece sin límite, se mantiene cómodo */
+@media (min-height: 1100px) and (min-width: 1400px) {
+  .stage {
+    --lens-size: clamp(4.5rem, 8vh, 7rem);
+    --main-gap: 1.35rem;
+  }
+}

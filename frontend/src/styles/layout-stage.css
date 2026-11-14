@@ -1,0 +1,247 @@
+/* ===== Stage =====
+   Escala fluida: cabe en el viewport y se adapta a cualquier pantalla.
+   Usa vmin/vh para no desbordar ni verse diminuto en monitores grandes. */
+.stage {
+  --stage-pad-x: clamp(0.75rem, 1.6vw, 1.5rem);
+  --stage-pad-top: clamp(0.5rem, 1.2vh, 1.1rem);
+  --stage-pad-bottom: clamp(3.75rem, 8.5vh, 4.75rem);
+  --lens-size: clamp(2.75rem, min(9.2vh, 11vw), 7rem);
+  --lens-gap: clamp(0.45rem, 1.2vh, 0.95rem);
+  --housing-pad: clamp(0.55rem, 1.4vh, 1.15rem);
+  --stem-h: clamp(1rem, 3.2vh, 3.25rem);
+  --main-gap: clamp(0.55rem, 1.8vh, 1.5rem);
+  --lights-gap: clamp(1.1rem, 5vw, 4.5rem);
+  --brand-size: clamp(1.25rem, min(2.6vh, 3.2vw), 2.35rem);
+  --panel-assist-w: clamp(18rem, 42vw, 42.5rem);
+  --panel-sub-w: clamp(17rem, 38vw, 36rem);
+  --panel-data-w: clamp(20rem, 48vw, 47.5rem);
+
+  position: relative;
+  width: 100%;
+  height: 100%;
+  max-height: 100dvh;
+  padding: var(--stage-pad-top) var(--stage-pad-x) var(--stage-pad-bottom);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.stage-glow {
+  pointer-events: none;
+  position: absolute;
+  inset: -20% -10% auto;
+  height: 70vh;
+  background:
+    radial-gradient(ellipse at 30% 20%, var(--glow-a), transparent 55%),
+    radial-gradient(ellipse at 75% 10%, var(--glow-b), transparent 50%),
+    linear-gradient(180deg, color-mix(in srgb, var(--bg-panel) 70%, transparent), var(--bg-deep) 70%);
+  z-index: 0;
+}
+
+.stage-shell,
+.fab-stack {
+  position: relative;
+  z-index: 1;
+}
+
+/* Shell horizontal: primary se comprime a la izquierda y el panel empuja */
+.stage-shell {
+  --panel-open-w: 0px;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  min-height: 0;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+.stage-primary {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: flex-basis 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.stage-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: clamp(0.5rem, 1.5vw, 1rem);
+  margin-bottom: clamp(0.2rem, 0.8vh, 0.55rem);
+  flex: 0 0 auto;
+}
+
+.brand-name {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--brand-size);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+
+.brand-tag {
+  margin: 0.2rem 0 0;
+  color: var(--muted);
+  font-size: clamp(0.75rem, 1.4vh, 0.95rem);
+}
+
+.status-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.pill {
+  min-width: 110px;
+  padding: 8px 12px;
+  border-radius: 14px;
+  background: var(--pill-bg);
+  border: 1px solid var(--line);
+  backdrop-filter: blur(8px);
+}
+
+[data-theme="light"] .brand-name {
+  color: #0b1b2b;
+}
+
+[data-theme="light"] .stage {
+  background:
+    radial-gradient(ellipse at 20% 0%, rgba(15, 118, 110, 0.06), transparent 45%),
+    radial-gradient(ellipse at 90% 10%, rgba(196, 122, 0, 0.07), transparent 40%),
+    var(--bg-deep);
+}
+
+[data-theme="light"] .drawer-backdrop {
+  background: rgba(15, 32, 51, 0.35);
+}
+
+[data-theme="light"] .theme-toggle,
+[data-theme="light"] .side-panel-inner {
+  box-shadow: 0 12px 32px rgba(16, 32, 51, 0.14);
+}
+
+[data-theme="light"] .fab-stack {
+  background: color-mix(in srgb, #ffffff 82%, transparent);
+  box-shadow: 0 10px 28px rgba(16, 32, 51, 0.12);
+}
+
+[data-theme="light"] .fab-active {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--teal) 25%, transparent);
+}
+
+[data-theme="light"] .status-banner {
+  background: color-mix(in srgb, var(--bg-panel) 92%, #dbe4ee);
+  color: var(--muted);
+}
+
+[data-theme="light"] .sim3d-view {
+  background: var(--bg-panel);
+}
+
+[data-theme="light"] .sim3d-view.is-fullscreen {
+  background: var(--bg-deep);
+}
+
+[data-theme="light"] .sim3d-canvas {
+  border-color: rgba(15, 35, 55, 0.14);
+  background: #9ec9ef;
+}
+
+[data-theme="light"] .sim3d-ambience select {
+  background: var(--input-bg);
+  border-color: var(--line);
+  color: var(--text);
+}
+
+[data-theme="light"] .chatbot-messages {
+  background: #e8eef5;
+}
+
+[data-theme="light"] .bar-track {
+  background: #dbe4ee;
+}
+
+.pill small {
+  display: block;
+  color: var(--muted);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.pill strong {
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+}
+
+.pill-timer .timer-digits {
+  font-variant-numeric: tabular-nums;
+  font-family: ui-monospace, 'Cascadia Mono', 'Segoe UI Mono', Consolas, monospace;
+  letter-spacing: 0.04em;
+  min-width: 2.6ch;
+  display: inline-block;
+}
+
+.pill-timer .timer-unit {
+  margin-left: 0.12em;
+  font-size: 0.78em;
+  opacity: 0.75;
+  font-weight: 600;
+}
+
+.pill-timer .timer-idle {
+  opacity: 0.45;
+  letter-spacing: 0.08em;
+}
+
+.sim3d-timer {
+  font-variant-numeric: tabular-nums;
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  color: var(--accent, #f0a202);
+}
+
+.pill-ok strong {
+  color: var(--teal);
+}
+
+.pill-off strong {
+  color: var(--red);
+}
+
+.pill-peak {
+  border-color: color-mix(in srgb, var(--amber) 55%, var(--line));
+}
+
+.pill-peak strong {
+  color: var(--amber);
+}
+
+.pill-offpeak strong {
+  color: var(--muted);
+}
+
+.stage-main {
+  flex: 1 1 auto;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--main-gap);
+  min-width: 0;
+  min-height: 0;
+  margin: 0 auto;
+  padding: clamp(0.15rem, 0.6vh, 0.5rem) clamp(0.25rem, 1vw, 0.75rem);
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+

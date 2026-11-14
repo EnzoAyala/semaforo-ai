@@ -3,7 +3,8 @@
 import pytest
 from fastapi import HTTPException
 
-from src import api
+from src.routers import chatbot as chatbot_api
+from src.schemas.requests import SolicitudChatbot, SolicitudValidacionIA
 
 
 def test_endpoint_inyecta_estado_actual(monkeypatch):
@@ -16,10 +17,10 @@ def test_endpoint_inyecta_estado_actual(monkeypatch):
         llamada["api_key"] = api_key
         return "Debes esperar la luz peatonal verde."
 
-    monkeypatch.setattr(api, "responder_consulta", responder_falso)
+    monkeypatch.setattr(chatbot_api, "responder_consulta", responder_falso)
 
-    resultado = api.consultar_chatbot(
-        api.SolicitudChatbot(
+    resultado = chatbot_api.consultar_chatbot(
+        SolicitudChatbot(
             consulta=" ¿Puedo cruzar? ",
             proveedor="gemini",
             api_key="clave-que-el-cliente-envie-se-ignora",
@@ -36,7 +37,7 @@ def test_endpoint_inyecta_estado_actual(monkeypatch):
 
 def test_endpoint_rechaza_consulta_vacia():
     with pytest.raises(HTTPException) as error:
-        api.consultar_chatbot(api.SolicitudChatbot(consulta="  "))
+        chatbot_api.consultar_chatbot(SolicitudChatbot(consulta="  "))
 
     assert error.value.status_code == 422
 
@@ -47,10 +48,10 @@ def test_endpoint_responde_fuera_de_ambito_sin_proveedor(monkeypatch):
     def responder_ambito(*_args, **_kwargs):
         raise ConsultaFueraDeAmbitoError(MENSAJE_FUERA_DE_AMBITO)
 
-    monkeypatch.setattr(api, "responder_consulta", responder_ambito)
+    monkeypatch.setattr(chatbot_api, "responder_consulta", responder_ambito)
 
-    resultado = api.consultar_chatbot(
-        api.SolicitudChatbot(
+    resultado = chatbot_api.consultar_chatbot(
+        SolicitudChatbot(
             consulta="Cuéntame un chiste de políticos",
             proveedor="gemini",
             api_key="clave",
@@ -61,16 +62,15 @@ def test_endpoint_responde_fuera_de_ambito_sin_proveedor(monkeypatch):
     assert "SemaforoIA" in resultado["respuesta"]
 
 
-
 def test_endpoint_confirma_conexion_gemini(monkeypatch):
     monkeypatch.setattr(
-        api,
+        chatbot_api,
         "validar_conexion",
         lambda proveedor, api_key: "gemini-3.6-flash",
     )
 
-    resultado = api.validar_api_key(
-        api.SolicitudValidacionIA(
+    resultado = chatbot_api.validar_api_key(
+        SolicitudValidacionIA(
             proveedor="gemini",
             api_key="clave-de-prueba",
         )

@@ -1,6 +1,6 @@
 import { X } from 'lucide-react';
-import { Chatbot } from './Chatbot';
-import { PeakHoursCard } from './PeakHoursCard';
+import { Chatbot } from '../chat/Chatbot';
+import { PeakHoursCard } from '../cards/PeakHoursCard';
 
 export function AssistDrawer({ open, onClose, onNotificar }) {
   return (

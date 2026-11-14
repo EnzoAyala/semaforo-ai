@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { Mic, Square, Loader2 } from 'lucide-react';
-import { semaforoService } from '../services/api';
+import { semaforoService } from '../../services/api';
 
 const MENSAJE_INICIAL = {
   autor: 'asistente',

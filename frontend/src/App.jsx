@@ -4,10 +4,10 @@ import './App.css';
 
 import { useSemaforo } from './hooks/useSemaforo';
 import { usePhaseCountdown } from './hooks/usePhaseCountdown';
-import { Header } from './components/Header';
-import { AssistDrawer } from './components/AssistDrawer';
-import { SubscriptionDrawer } from './components/SubscriptionDrawer';
-import { HistoryModal } from './components/HistoryModal';
+import { Header } from './components/layout/Header';
+import { AssistDrawer } from './components/drawers/AssistDrawer';
+import { SubscriptionDrawer } from './components/drawers/SubscriptionDrawer';
+import { HistoryModal } from './components/modals/HistoryModal';
 import { SimulationView } from './scene3d/SimulationView';
 import { semaforoService } from './services/api';
 

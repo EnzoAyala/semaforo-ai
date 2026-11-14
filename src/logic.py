@@ -1,6 +1,7 @@
 """
-Módulo de Lógica del Semáforo Peatonal Inteligente (SemaforoIA).
-Soporta las luces VERDE, AMARILLO y ROJO con cálculo determinista de transiciones.
+FSM del semáforo peatonal (núcleo de dominio, sin I/O).
+
+REPOSO → AMARILLO (3s) → FASE_PEATONAL (rojo) → COOLDOWN → REPOSO
 """
 
 from enum import Enum

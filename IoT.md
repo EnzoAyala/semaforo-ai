@@ -59,7 +59,7 @@ flowchart LR
 |------|------------|-----|
 | Captura / actuación | Arduino + PIR + botón + LEDs + buzzer | Lee sensores y aplica luces |
 | Transmisión | USB Serial + `src/bridge_serial.py` | Traduce Serial ↔ HTTP |
-| Plataforma | FastAPI (`src/api.py`) + lógica FSM (`src/logic.py`) | Decide estados y expone API |
+| Plataforma | FastAPI (`src/api.py` + `src/routers/`) + FSM (`src/logic.py`) | Decide estados y expone API |
 | Almacenamiento | PostgreSQL (`db/init.sql`) | Guarda eventos e historial |
 | Visualización | React (`frontend/`) | Luces en vivo, modal de datos, chat |
 
@@ -89,9 +89,11 @@ No se usó MQTT ni WiFi en el Arduino: la transmisión es **por cable USB** haci
 | `arduino/semaforo_ia/semaforo_ia.ino` | Firmware: captura PIR/botón, pitido al cruce aceptado, luces |
 | `arduino/prueba_pines/prueba_pines.ino` | Prueba rápida de cables/LEDs |
 | `src/bridge_serial.py` | Bridge USB ↔ HTTP |
-| `src/api.py` | REST + WebSocket + ingest de sensor + historial |
+| `src/api.py` | Entrypoint FastAPI (monta routers) |
+| `src/routers/` | Endpoints REST/WS por dominio |
+| `src/services/` | Orquestación FSM, emails, hora pico |
 | `src/logic.py` | Máquina de estados del semáforo |
-| `src/storage.py` | Persistencia SQLAlchemy → PostgreSQL |
+| `src/storage/` | Persistencia SQLAlchemy → PostgreSQL |
 | `src/automation.py` | Envío de alertas SMTP |
 | `src/ai_assistant.py` | Asistente conversacional |
 | `frontend/src/App.jsx` | Escenario principal (semáforo a pantalla) |

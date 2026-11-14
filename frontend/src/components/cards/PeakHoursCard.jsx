@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
-import { semaforoService } from '../services/api';
+import { semaforoService } from '../../services/api';
 
 export function PeakHoursCard({ compact = false, onNotificar }) {
   const [data, setData] = useState(null);

@@ -1,4 +1,4 @@
-import { API_BASE_URL, SIM_WS_URL } from '../services/api';
+import { API_BASE_URL, SIM_WS_URL } from '../../services/api';
 
 const STORAGE_KEY = 'semaforoia-sim3d-v1';
 const MAX_AGE_MS = 1000 * 60 * 60 * 12; // 12 h

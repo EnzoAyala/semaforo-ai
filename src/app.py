@@ -1,6 +1,7 @@
 """
-Script principal de simulación de SemaforoIA.
-Demuestra la detección de peatones, fases de luces y enfriamiento (cooldown).
+Demo CLI del FSM (no es la API de producción).
+
+Para la API real: `uvicorn src.api:app --reload --port 8000`
 """
 
 import os

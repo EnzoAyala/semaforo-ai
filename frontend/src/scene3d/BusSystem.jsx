@@ -6,7 +6,7 @@ import {
   pedestriansOnCrosswalk,
   publishBucket,
 } from './vehicleRegistry';
-import { patchSimStore, readSimStore } from './simPersistence';
+import { patchSimStore, readSimStore } from './persistence/simPersistence';
 
 const BUS_Z = LANES.westOuter;
 const STOP_X = 7.2;

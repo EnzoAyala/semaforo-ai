@@ -4,7 +4,7 @@ import {
   labelModo,
   modoTieneContador,
   sensorPirActivo,
-} from '../utils/modoLabels';
+} from '../../utils/modoLabels';
 
 export const Header = ({
   modo,

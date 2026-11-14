@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Mail, UserMinus } from 'lucide-react';
-import { semaforoService } from '../services/api';
+import { semaforoService } from '../../services/api';
 
 const EMAIL_OK = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 

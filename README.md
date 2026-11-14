@@ -114,13 +114,27 @@ semaforo-ai/
 ├── db/init.sql              # Esquema PostgreSQL
 ├── docker-compose.yml       # postgres + api + frontend
 ├── frontend/                # Dashboard React + Vite
+│   └── src/
+│       ├── components/      # layout, drawers, modals, cards, chat
+│       ├── scene3d/         # sim 3D (agents/, persistence/, meshes)
+│       ├── services/        # API client (config + http)
+│       ├── styles/          # CSS por dominio
+│       └── hooks/
 ├── src/
-│   ├── api.py               # REST + WebSocket + ingest sensor
-│   ├── bridge_serial.py     # Bridge USB ↔ HTTP (corre en el PC)
-│   ├── storage.py           # Persistencia PostgreSQL
+│   ├── api.py               # Entrypoint FastAPI (monta routers)
 │   ├── logic.py             # FSM del semáforo
+│   ├── bridge_serial.py     # Bridge USB ↔ HTTP (corre en el PC)
 │   ├── automation.py        # SMTP
-│   └── ai_assistant.py      # Chatbot
+│   ├── ai_assistant.py      # Chatbot (proveedores IA)
+│   ├── sim_store.py         # Estado compartido simulación 3D
+│   ├── app.py               # Demo CLI del FSM (no es la API)
+│   ├── routers/             # Endpoints HTTP/WS por dominio
+│   ├── services/            # Orquestación FSM, emails, hora pico
+│   ├── schemas/             # Modelos Pydantic de request
+│   ├── storage/             # Persistencia PostgreSQL / memoria
+│   ├── realtime/            # ConnectionManager WebSocket
+│   ├── background/          # Bucles asyncio (broadcast, bot)
+│   └── bots/                # Scraper horarios pico
 └── tests/
 ```
 

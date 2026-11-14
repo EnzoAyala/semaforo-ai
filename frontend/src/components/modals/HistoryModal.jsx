@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { X } from 'lucide-react';
-import { semaforoService } from '../services/api';
+import { semaforoService } from '../../services/api';
 
 function formatearFecha(iso) {
   if (!iso) return '—';

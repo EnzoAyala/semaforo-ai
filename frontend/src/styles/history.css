@@ -1,0 +1,184 @@
+/* ===== History / data panel grid ===== */
+.modal-grid {
+  padding: 16px 18px 22px;
+  overflow: auto;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+
+.data-panel .modal-grid {
+  grid-template-columns: 1fr;
+}
+
+.modal-card {
+  background: var(--bg-panel-2);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px;
+}
+
+.modal-card-wide {
+  grid-column: 1 / -1;
+}
+
+.modal-card h3 {
+  margin: 0 0 12px;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+}
+
+.area-chart {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.chart-axis,
+.chart-value {
+  fill: var(--muted);
+  font-size: 10px;
+  font-family: var(--font-body);
+}
+
+.chart-value {
+  fill: var(--text);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.chart-grid {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+
+.chart-ylabel {
+  font-size: 11px;
+  fill: var(--muted);
+}
+
+.bar-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.bar-row {
+  display: grid;
+  grid-template-columns: 64px 1fr 28px;
+  gap: 8px;
+  align-items: center;
+}
+
+.bar-label {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.bar-track {
+  height: 10px;
+  background: color-mix(in srgb, var(--input-bg) 80%, var(--muted));
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--teal), #5eead4);
+  border-radius: 999px;
+  min-width: 4px;
+}
+
+.bar-value {
+  text-align: right;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.history-table-wrap {
+  overflow: auto;
+  max-height: 220px;
+}
+
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.history-table th,
+.history-table td {
+  text-align: left;
+  padding: 8px 6px;
+  border-bottom: 1px solid var(--line);
+}
+
+.history-table th {
+  color: var(--muted);
+}
+
+.state-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 220px;
+  overflow: auto;
+}
+
+.state-timeline li {
+  display: grid;
+  grid-template-columns: 180px 1fr auto;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--input-bg);
+  border: 1px solid var(--line);
+  font-size: 0.82rem;
+}
+
+.timeline-mode {
+  color: var(--amber);
+  font-weight: 700;
+}
+
+.timeline-lights {
+  color: var(--muted);
+}
+
+.timeline-time {
+  color: #6b7c90;
+  font-size: 0.75rem;
+}
+
+.bridge-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 6px 10px;
+  border-radius: 999px;
+}
+
+.bridge-badge.ok {
+  color: var(--teal);
+  border: 1px solid rgba(45, 212, 191, 0.35);
+}
+
+.bridge-badge.off {
+  color: #ffb4b4;
+  border: 1px solid rgba(255, 77, 77, 0.35);
+}
+
+.history-empty,
+.history-error {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.history-error {
+  color: #ffb4b4;
+  padding: 0 18px;
+}
+

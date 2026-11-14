@@ -1,5 +1,5 @@
 import { X } from 'lucide-react';
-import { EmailSubscriptionCard } from './EmailSubscriptionCard';
+import { EmailSubscriptionCard } from '../cards/EmailSubscriptionCard';
 
 export function SubscriptionDrawer({ open, onClose, onNotificar }) {
   return (

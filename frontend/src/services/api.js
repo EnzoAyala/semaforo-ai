@@ -1,9 +1,11 @@
-// Detecta si se ingresó por localhost, 192.168.x.x o 26.x.x.x
-const HOST = window.location.hostname || 'localhost';
+/**
+ * Cliente HTTP de SemaforoIA.
+ * Un solo objeto `semaforoService` para no romper imports existentes.
+ */
+import { API_BASE_URL } from './config';
+import { readErrorDetail } from './http';
 
-export const API_BASE_URL = `http://${HOST}:8000/api`;
-export const WS_URL = `ws://${HOST}:8000/ws/estado`;
-export const SIM_WS_URL = `ws://${HOST}:8000/ws/sim`;
+export { API_BASE_URL, WS_URL, SIM_WS_URL } from './config';
 
 export const semaforoService = {
   async obtenerEstado() {
@@ -47,15 +49,15 @@ export const semaforoService = {
     }
   },
 
-  async enviarAlertaEmail(correo, asunto, mensajeAdicional = "") {
+  async enviarAlertaEmail(correo, asunto, mensajeAdicional = '') {
     try {
       const res = await fetch(`${API_BASE_URL}/enviar-alerta`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           destinatario: correo,
-          asunto: asunto,
-          mensaje_adicional: mensajeAdicional
+          asunto,
+          mensaje_adicional: mensajeAdicional,
         }),
       });
       if (!res.ok) throw new Error('Error al enviar correo');
@@ -79,14 +81,7 @@ export const semaforoService = {
       body: JSON.stringify({ email }),
     });
     if (!res.ok) {
-      let mensaje = 'No se pudo suscribir el correo';
-      try {
-        const err = await res.json();
-        if (err.detail) mensaje = err.detail;
-      } catch {
-        // ignore
-      }
-      throw new Error(mensaje);
+      throw new Error(await readErrorDetail(res, 'No se pudo suscribir el correo'));
     }
     return await res.json();
   },
@@ -98,14 +93,7 @@ export const semaforoService = {
       body: JSON.stringify({ email }),
     });
     if (!res.ok) {
-      let mensaje = 'No se pudo cancelar la suscripción';
-      try {
-        const err = await res.json();
-        if (err.detail) mensaje = err.detail;
-      } catch {
-        // ignore
-      }
-      throw new Error(mensaje);
+      throw new Error(await readErrorDetail(res, 'No se pudo cancelar la suscripción'));
     }
     return await res.json();
   },
@@ -124,16 +112,8 @@ export const semaforoService = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ consulta, proveedor: 'gemini' }),
     });
-
     if (!res.ok) {
-      let mensaje = 'No se pudo contactar al asistente';
-      try {
-        const error = await res.json();
-        if (error.detail) mensaje = error.detail;
-      } catch {
-        // Mantiene el mensaje predeterminado
-      }
-      throw new Error(mensaje);
+      throw new Error(await readErrorDetail(res, 'No se pudo contactar al asistente'));
     }
     return await res.json();
   },
@@ -141,21 +121,12 @@ export const semaforoService = {
   async transcribirAudio(audioBlob) {
     const formData = new FormData();
     formData.append('audio', audioBlob, 'audio.webm');
-
     const res = await fetch(`${API_BASE_URL}/chatbot/transcribir`, {
       method: 'POST',
       body: formData,
     });
-
     if (!res.ok) {
-      let mensaje = 'No se pudo transcribir el audio';
-      try {
-        const error = await res.json();
-        if (error.detail) mensaje = error.detail;
-      } catch {
-        // Mantiene el mensaje predeterminado
-      }
-      throw new Error(mensaje);
+      throw new Error(await readErrorDetail(res, 'No se pudo transcribir el audio'));
     }
     return await res.json();
   },

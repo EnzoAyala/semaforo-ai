@@ -1,0 +1,45 @@
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  background: var(--bg-panel);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.theme-toggle:hover {
+  border-color: color-mix(in srgb, var(--teal) 40%, var(--line));
+}
+
+.topbar-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.chart-help {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.status-banner {
+  width: 100%;
+  text-align: center;
+  color: var(--muted);
+  font-size: clamp(0.75rem, 1.4vh, 0.9rem);
+  padding: clamp(0.35rem, 0.9vh, 0.55rem) 0.75rem;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--bg-panel-2) 88%, transparent);
+  border: 1px solid var(--line);
+}
+
+
