@@ -78,18 +78,28 @@ function Skyscraper({ position, size, color, accent = '#334155', nightLights }) 
         <boxGeometry args={[w, h, d]} />
         <meshStandardMaterial
           color={color}
-          roughness={0.62}
-          metalness={0.22}
+          roughness={0.55}
+          metalness={0.18}
+          fog={false}
         />
       </mesh>
-      {/* Marco / cornisa de azotea */}
       <mesh position={[0, h + 0.12, 0]}>
         <boxGeometry args={[w * 0.92, 0.28, d * 0.92]} />
-        <meshStandardMaterial color={accent} metalness={0.35} roughness={0.45} />
+        <meshStandardMaterial
+          color={accent}
+          metalness={0.35}
+          roughness={0.45}
+          fog={false}
+        />
       </mesh>
       <mesh position={[0, h + 0.38, 0]}>
         <boxGeometry args={[w * 0.55, 0.35, d * 0.4]} />
-        <meshStandardMaterial color="#1e293b" metalness={0.4} roughness={0.4} />
+        <meshStandardMaterial
+          color="#1e293b"
+          metalness={0.4}
+          roughness={0.4}
+          fog={false}
+        />
       </mesh>
       {faces.map(([fx, , fz, yaw], i) => (
         <group
@@ -179,48 +189,64 @@ export function Environment({ atmosphere }) {
   const nightLights = atmosphere?.nightLights ?? 0;
   const ground = nightLights > 0.5 ? '#2f4a32' : '#5a8f55';
 
-  // Anillo lejano 360°: |z| > 26 o |x| > 24 — sin edificios en primer plano sur
+  /**
+   * Skyline como 2ª imagen: torres nítidas y coloridas DELANTE de las montañas.
+   * Norte cercano (z≈-26..-31); montañas más atrás. Sin cruce con la avenida.
+   */
   const skyline = [
-    // Norte
-    [-26, 0, -34, 4.4, 10, 3.6, '#7b8796', '#475569'],
-    [-18, 0, -36, 3.4, 14, 3.2, '#8fa4b8', '#334155'],
-    [-10, 0, -35, 5.2, 8.5, 4.0, '#c4a484', '#7c5a3e'],
-    [-2, 0, -37, 3.8, 16, 3.4, '#6d8aa8', '#1e3a5f'],
-    [6, 0, -35, 4.6, 11, 3.8, '#a8b4c0', '#475569'],
-    [14, 0, -36, 3.5, 13, 3.2, '#9bb8c9', '#334155'],
-    [22, 0, -34, 5.0, 9, 4.1, '#b8957a', '#6b4423'],
-    [30, 0, -35, 3.6, 12, 3.3, '#7a8fa0', '#334155'],
-    // Este
-    [36, 0, -22, 4.0, 11, 3.5, '#8b9aab', '#475569'],
-    [38, 0, -10, 3.5, 15, 3.2, '#6e9bbb', '#1e40af'],
-    [37, 0, 4, 4.8, 9.5, 3.8, '#c9b29a', '#7c5a3e'],
-    [36, 0, 16, 3.8, 12.5, 3.4, '#7f8f9e', '#334155'],
-    [38, 0, 28, 4.2, 8, 3.6, '#a3b5c4', '#475569'],
-    // Sur (lejano, no tapa el cruce)
-    [28, 0, 36, 4.5, 10, 3.5, '#8a96a6', '#334155'],
-    [16, 0, 38, 3.4, 13, 3.2, '#9eb6c8', '#1e3a5f'],
-    [4, 0, 37, 5.0, 9, 4.0, '#b89b7c', '#6b4423'],
-    [-8, 0, 38, 3.7, 14, 3.3, '#748a9c', '#475569'],
-    [-20, 0, 36, 4.3, 11, 3.6, '#a8b8c6', '#334155'],
-    [-30, 0, 35, 3.6, 8.5, 3.4, '#7c8c9a', '#475569'],
-    // Oeste
-    [-38, 0, 22, 4.1, 12, 3.5, '#8fa0b0', '#334155'],
-    [-37, 0, 8, 3.5, 15, 3.2, '#6d9ab0', '#1e40af'],
-    [-38, 0, -6, 4.6, 9, 3.8, '#c2a88c', '#7c5a3e'],
-    [-36, 0, -20, 3.8, 11.5, 3.4, '#8090a0', '#475569'],
+    // —— Norte denso (primera fila, bien visible) ——
+    [-28, 0, -27, 3.8, 10.5, 3.3, '#8b9aab', '#475569'],
+    [-22, 0, -29, 3.2, 15.0, 3.0, '#6e9bbb', '#1e40af'],
+    [-16, 0, -28, 4.6, 8.5, 3.7, '#c4a484', '#7c5a3e'],
+    [-10, 0, -30, 3.4, 16.5, 3.1, '#7b6fa0', '#3b2f6b'],
+    [-4, 0, -27, 4.8, 11.0, 3.8, '#a8b4c0', '#475569'],
+    [2, 0, -30, 3.5, 18.0, 3.2, '#5b8fb8', '#1e3a5f'],
+    [8, 0, -28, 4.2, 12.5, 3.5, '#9aa8b8', '#334155'],
+    [14, 0, -30, 3.3, 14.5, 3.0, '#8fb0c4', '#1e40af'],
+    [20, 0, -27, 4.7, 9.5, 3.9, '#b8957a', '#6b4423'],
+    [26, 0, -29, 3.4, 13.0, 3.1, '#8799a8', '#334155'],
+    [31, 0, -31, 3.6, 10.0, 3.2, '#a3b5c4', '#475569'],
+    // —— Segunda fila norte ——
+    [-25, 0, -34, 3.0, 12.0, 2.8, '#7d8d9c', '#334155'],
+    [-13, 0, -35, 3.6, 9.0, 3.0, '#c9b29a', '#7c5a3e'],
+    [-1, 0, -36, 2.9, 14.0, 2.7, '#6e9bbb', '#1e40af'],
+    [11, 0, -35, 3.8, 10.5, 3.1, '#9585b0', '#4c3d7a'],
+    [23, 0, -34, 3.2, 12.5, 2.9, '#9bb8c9', '#334155'],
+    // —— Sur / detrás del mall (z≈24..32, x alrededor del mall) ——
+    [-6, 0, 26, 3.8, 10.0, 3.3, '#8b9aab', '#475569'],
+    [0, 0, 28, 3.3, 14.5, 3.0, '#6e9bbb', '#1e40af'],
+    [6, 0, 26, 4.5, 9.0, 3.7, '#c4a484', '#7c5a3e'],
+    [12, 0, 29, 3.4, 16.0, 3.1, '#7b6fa0', '#3b2f6b'],
+    [18, 0, 27, 4.6, 11.5, 3.8, '#a8b4c0', '#475569'],
+    [24, 0, 30, 3.5, 15.0, 3.2, '#5b8fb8', '#1e3a5f'],
+    [30, 0, 27, 4.2, 10.5, 3.5, '#9aa8b8', '#334155'],
+    [37, 0, 32, 3.3, 13.0, 3.0, '#8fb0c4', '#1e40af'],
+    // Segunda fila sur (detrás del mall)
+    [-2, 0, 34, 3.1, 11.5, 2.8, '#7d8d9c', '#334155'],
+    [8, 0, 35, 3.7, 9.5, 3.0, '#c9b29a', '#7c5a3e'],
+    [16, 0, 36, 3.0, 13.5, 2.7, '#9585b0', '#4c3d7a'],
+    [26, 0, 35, 3.5, 12.0, 2.9, '#9bb8c9', '#334155'],
+    [34, 0, 34, 3.2, 10.0, 2.8, '#b8957a', '#6b4423'],
+    // —— Este / Oeste lejanos ——
+    [44, 0, -22, 3.6, 12.0, 3.2, '#8b9aab', '#475569'],
+    [45, 0, 18, 3.8, 11.0, 3.3, '#a3b5c4', '#475569'],
+    [-44, 0, -22, 3.5, 12.5, 3.1, '#6e9bbb', '#1e40af'],
+    [-45, 0, 18, 4.0, 10.5, 3.4, '#c2a88c', '#7c5a3e'],
+    [-38, 0, 30, 3.5, 11.0, 3.2, '#8fa0b0', '#334155'],
   ];
 
   const clouds = [
-    [-14, 20, -12, 2.8, 0.36],
-    [6, 22, -16, 3.2, 0.34],
-    [18, 19, -6, 2.5, 0.38],
-    [-22, 21, 4, 2.9, 0.35],
-    [0, 24, 10, 2.4, 0.33],
-    [24, 20, 14, 2.7, 0.37],
-    [-8, 23, -22, 3.0, 0.34],
-    [12, 18, 22, 2.6, 0.36],
-    [-26, 22, -28, 2.8, 0.32],
-    [28, 21, -24, 2.5, 0.38],
+    [-16, 21, -24, 3.0, 0.4],
+    [4, 23, -28, 3.4, 0.38],
+    [18, 20, -18, 2.8, 0.42],
+    [-24, 22, -14, 3.1, 0.36],
+    [10, 24, -8, 2.6, 0.38],
+    [26, 21, -26, 2.9, 0.4],
+    [-6, 22, -32, 3.2, 0.35],
+    // Nubes detrás del mall / sur
+    [14, 20, 22, 2.8, 0.4],
+    [28, 22, 28, 3.0, 0.38],
+    [6, 21, 30, 2.6, 0.36],
   ];
 
   return (
@@ -230,17 +256,21 @@ export function Environment({ atmosphere }) {
         <meshStandardMaterial color={ground} roughness={1} />
       </mesh>
 
-      {/* Cerros norte */}
-      <Hill position={[-24, 0, -42]} radius={13} height={6.5} depth={0.4} color="#5a8f52" accent="#487844" yaw={0.12} />
-      <Hill position={[-6, 0, -44]} radius={12} height={8.2} depth={0.38} color="#62985a" accent="#50804a" yaw={-0.1} />
-      <Hill position={[12, 0, -43]} radius={12.5} height={7.4} depth={0.38} color="#669c5e" accent="#54844e" yaw={0.16} />
-      <Hill position={[28, 0, -41]} radius={11} height={6.2} depth={0.42} color="#5e9256" accent="#4c7a46" yaw={-0.12} />
-      {/* Cerros laterales / sur lejanos */}
-      <Hill position={[-44, 0, -20]} radius={11} height={5.2} depth={0.48} color="#52884c" accent="#427040" yaw={0.9} />
-      <Hill position={[44, 0, -14]} radius={11.5} height={5.4} depth={0.48} color="#568c50" accent="#467444" yaw={-0.85} />
-      <Hill position={[-40, 0, 30]} radius={10} height={4.6} depth={0.5} color="#4f8548" accent="#3f6e3c" yaw={1.1} />
-      <Hill position={[38, 0, 32]} radius={10.5} height={4.8} depth={0.5} color="#558a4e" accent="#457244" yaw={-1.0} />
-      <Hill position={[0, 0, 44]} radius={12} height={5.0} depth={0.42} color="#5c9054" accent="#4c7848" yaw={0.2} />
+      {/* Montañas norte (detrás de torres norte) */}
+      <Hill position={[-26, 0, -46]} radius={17} height={10.5} depth={0.34} color="#4f7f48" accent="#3f6840" yaw={0.08} />
+      <Hill position={[-6, 0, -49]} radius={19} height={12.5} depth={0.32} color="#5a8b52" accent="#487846" yaw={-0.06} />
+      <Hill position={[14, 0, -48]} radius={18} height={11.5} depth={0.32} color="#629654" accent="#50804a" yaw={0.12} />
+      <Hill position={[32, 0, -45]} radius={15} height={9.5} depth={0.34} color="#568850" accent="#467244" yaw={-0.08} />
+      {/* Montañas sur / detrás del mall */}
+      <Hill position={[4, 0, 46]} radius={16} height={10.0} depth={0.34} color="#4f7f48" accent="#3f6840" yaw={0.1} />
+      <Hill position={[18, 0, 48]} radius={18} height={11.8} depth={0.32} color="#5a8b52" accent="#487846" yaw={-0.08} />
+      <Hill position={[32, 0, 46]} radius={15} height={9.8} depth={0.34} color="#629654" accent="#50804a" yaw={0.12} />
+      <Hill position={[-12, 0, 45]} radius={14} height={8.5} depth={0.36} color="#568850" accent="#467244" yaw={-0.1} />
+      {/* Laterales */}
+      <Hill position={[-52, 0, -38]} radius={11} height={6.5} depth={0.38} color="#4d7846" accent="#3d6340" yaw={0.8} />
+      <Hill position={[56, 0, -40]} radius={11} height={6.8} depth={0.38} color="#527c4a" accent="#426744" yaw={-0.75} />
+      <Hill position={[-54, 0, 40]} radius={10} height={5.8} depth={0.38} color="#4a7444" accent="#3a5f3a" yaw={1.0} />
+      <Hill position={[58, 0, 42]} radius={10} height={6.0} depth={0.38} color="#4e7848" accent="#3e6340" yaw={-0.95} />
 
       {skyline.map(([x, , z, w, h, d, color, accent], i) => (
         <Skyscraper
