@@ -1,8 +1,8 @@
 import { NORTH_HOUSES, SOUTH_HOUSES } from './houseLayout';
 
-function FramedWindow({ position, nightLights }) {
+function FramedWindow({ position, nightLights, scale = 1 }) {
   return (
-    <group position={position}>
+    <group position={position} scale={scale}>
       <mesh>
         <boxGeometry args={[0.48, 0.42, 0.08]} />
         <meshStandardMaterial color="#4b5563" roughness={0.6} metalness={0.2} />
@@ -49,10 +49,18 @@ function House({
         <coneGeometry args={[1.75, 1.25, 4]} />
         <meshStandardMaterial color={roof} roughness={0.75} metalness={0.1} />
       </mesh>
+
+      {/* Chimenea + remate */}
       <mesh position={[0.55, 2.55, -0.2]} castShadow>
         <boxGeometry args={[0.28, 0.55, 0.28]} />
         <meshStandardMaterial color="#6b7280" roughness={0.8} />
       </mesh>
+      <mesh position={[0.55, 2.86, -0.2]}>
+        <boxGeometry args={[0.34, 0.08, 0.34]} />
+        <meshStandardMaterial color="#4b5563" roughness={0.75} />
+      </mesh>
+
+      {/* Fachada frontal */}
       <mesh position={[0, 0.55, 0.96]} castShadow>
         <boxGeometry args={[0.52, 0.95, 0.1]} />
         <meshStandardMaterial color="#5c4030" roughness={0.7} metalness={0.08} />
@@ -71,6 +79,30 @@ function House({
         <boxGeometry args={[0.7, 0.12, 0.35]} />
         <meshStandardMaterial color="#94a3b8" roughness={0.85} />
       </mesh>
+
+      {/* Fachada posterior (+ detalle 180°) */}
+      <mesh position={[0, 0.55, -0.96]} castShadow>
+        <boxGeometry args={[0.42, 0.85, 0.08]} />
+        <meshStandardMaterial color="#4a3728" roughness={0.75} metalness={0.08} />
+      </mesh>
+      <mesh position={[-0.12, 0.55, -1.01]}>
+        <sphereGeometry args={[0.035, 8, 8]} />
+        <meshStandardMaterial color="#d4d4d8" metalness={0.6} roughness={0.35} />
+      </mesh>
+      <FramedWindow position={[-0.55, 1.15, -0.96]} nightLights={nightLights} />
+      <FramedWindow position={[0.55, 1.15, -0.96]} nightLights={nightLights} />
+      <mesh position={[0, 0.08, -1.12]} receiveShadow>
+        <boxGeometry args={[0.55, 0.1, 0.28]} />
+        <meshStandardMaterial color="#64748b" roughness={0.85} />
+      </mesh>
+
+      {/* Laterales */}
+      <group position={[1.16, 1.15, 0.25]} rotation={[0, Math.PI / 2, 0]}>
+        <FramedWindow position={[0, 0, 0]} nightLights={nightLights} scale={0.85} />
+      </group>
+      <group position={[-1.16, 1.15, -0.2]} rotation={[0, -Math.PI / 2, 0]}>
+        <FramedWindow position={[0, 0, 0]} nightLights={nightLights} scale={0.85} />
+      </group>
     </group>
   );
 }

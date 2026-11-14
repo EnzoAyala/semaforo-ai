@@ -100,11 +100,11 @@ function AtmosphereRig({ ambienceMode, onAtmosphere }) {
         color={atm.dirColor}
         shadow-mapSize-width={2048}
         shadow-mapSize-height={2048}
-        shadow-camera-far={70}
-        shadow-camera-left={-28}
-        shadow-camera-right={28}
-        shadow-camera-top={28}
-        shadow-camera-bottom={-28}
+        shadow-camera-far={90}
+        shadow-camera-left={-32}
+        shadow-camera-right={32}
+        shadow-camera-top={32}
+        shadow-camera-bottom={-32}
         shadow-bias={-0.00025}
       />
     </>
@@ -197,9 +197,10 @@ function SceneContent({
 
       <OrbitControls
         enablePan={false}
-        minDistance={10}
-        maxDistance={42}
-        maxPolarAngle={Math.PI / 2.12}
+        minDistance={8}
+        maxDistance={55}
+        minPolarAngle={0.12}
+        maxPolarAngle={Math.PI / 2.05}
         target={[0, 0.8, 0]}
       />
     </>

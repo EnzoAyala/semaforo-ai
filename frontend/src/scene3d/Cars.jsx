@@ -47,15 +47,42 @@ function CarVisual({ color, visualsRef, visualIndex }) {
     if (brakeR.current) brakeR.current.material.emissiveIntensity = brake;
   });
 
+  const glass = {
+    color: '#0f172a',
+    transparent: true,
+    opacity: 0.55,
+    roughness: 0.2,
+    metalness: 0.15,
+    depthWrite: false,
+  };
+
   return (
     <group ref={root}>
       <mesh castShadow position={[0, 0.35, 0]}>
         <boxGeometry args={[1.7, 0.45, 0.9]} />
         <meshStandardMaterial color={color} roughness={0.45} metalness={0.25} />
       </mesh>
+      {/* Cabina sólida */}
       <mesh castShadow position={[0.1, 0.72, 0]}>
         <boxGeometry args={[1.0, 0.4, 0.82]} />
-        <meshStandardMaterial color="#dce8f5" transparent opacity={0.82} roughness={0.25} metalness={0.15} />
+        <meshStandardMaterial color={color} roughness={0.5} metalness={0.2} />
+      </mesh>
+      {/* Parabrisas / cristales 4 caras */}
+      <mesh position={[0.62, 0.74, 0]} renderOrder={1}>
+        <boxGeometry args={[0.04, 0.28, 0.72]} />
+        <meshStandardMaterial {...glass} />
+      </mesh>
+      <mesh position={[-0.4, 0.74, 0]} renderOrder={1}>
+        <boxGeometry args={[0.04, 0.26, 0.7]} />
+        <meshStandardMaterial {...glass} opacity={0.48} />
+      </mesh>
+      <mesh position={[0.08, 0.74, 0.42]} renderOrder={1}>
+        <boxGeometry args={[0.78, 0.26, 0.04]} />
+        <meshStandardMaterial {...glass} opacity={0.5} />
+      </mesh>
+      <mesh position={[0.08, 0.74, -0.42]} renderOrder={1}>
+        <boxGeometry args={[0.78, 0.26, 0.04]} />
+        <meshStandardMaterial {...glass} opacity={0.5} />
       </mesh>
       <mesh ref={headL} position={[0.88, 0.35, 0.28]}>
         <boxGeometry args={[0.08, 0.16, 0.2]} />

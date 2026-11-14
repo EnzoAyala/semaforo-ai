@@ -46,16 +46,49 @@ function BusVisual({ visualRef, nightLights = 0 }) {
     if (brakeR.current) brakeR.current.material.emissiveIntensity = brake;
   });
 
+  const glassMat = {
+    color: '#0c4a6e',
+    transparent: true,
+    opacity: 0.55,
+    roughness: 0.22,
+    metalness: 0.12,
+    depthWrite: false,
+  };
+
   return (
     <group ref={root}>
       <mesh castShadow position={[0, 1.15, 0]}>
         <boxGeometry args={[4.4, 1.8, 1.55]} />
         <meshStandardMaterial color="#f59e0b" roughness={0.45} metalness={0.2} />
       </mesh>
-      <mesh position={[0.15, 1.55, 0]}>
-        <boxGeometry args={[3.5, 0.7, 1.45]} />
-        <meshStandardMaterial color="#7dd3fc" transparent opacity={0.65} roughness={0.25} />
+      {/* Franja superior del cuerpo */}
+      <mesh position={[0.05, 1.72, 0]}>
+        <boxGeometry args={[4.15, 0.35, 1.48]} />
+        <meshStandardMaterial color="#ea580c" roughness={0.5} metalness={0.15} />
       </mesh>
+      {/* Ventanas laterales definidas */}
+      {[-1.2, -0.15, 0.9].map((x) => (
+        <mesh key={`wl-${x}`} position={[x, 1.45, 0.78]} renderOrder={1}>
+          <boxGeometry args={[0.85, 0.7, 0.05]} />
+          <meshStandardMaterial {...glassMat} />
+        </mesh>
+      ))}
+      {[-1.2, -0.15, 0.9].map((x) => (
+        <mesh key={`wr-${x}`} position={[x, 1.45, -0.78]} renderOrder={1}>
+          <boxGeometry args={[0.85, 0.7, 0.05]} />
+          <meshStandardMaterial {...glassMat} />
+        </mesh>
+      ))}
+      {/* Parabrisas delantero / trasero */}
+      <mesh position={[2.18, 1.4, 0]} renderOrder={1}>
+        <boxGeometry args={[0.06, 0.85, 1.25]} />
+        <meshStandardMaterial {...glassMat} opacity={0.5} />
+      </mesh>
+      <mesh position={[-2.18, 1.4, 0]} renderOrder={1}>
+        <boxGeometry args={[0.06, 0.75, 1.2]} />
+        <meshStandardMaterial {...glassMat} opacity={0.48} />
+      </mesh>
+      {/* Puerta */}
       <mesh position={[-0.2, 0.9, -0.8]}>
         <boxGeometry args={[0.9, 1.3, 0.08]} />
         <meshStandardMaterial color="#0ea5e9" metalness={0.2} roughness={0.4} />
