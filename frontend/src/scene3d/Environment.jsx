@@ -1,66 +1,96 @@
 /**
  * Suelo circular continuo, valle urbano 360°, cerros laterales y nubes translúcidas.
+ * Optimizado: ventanas = 1 textura/cara (no 1 mesh por ventana), geometrías compartidas.
  */
+import { useMemo } from 'react';
+import * as THREE from 'three';
 
-function PolyCloud({ position, scale = 1, color = '#ffffff', opacity = 0.22 }) {
-  const puffs = [
-    [0, 0, 0, 1.1],
-    [1.0, 0.12, 0.15, 0.85],
-    [-0.95, 0.08, -0.12, 0.8],
-    [0.32, 0.44, -0.28, 0.72],
-    [-0.42, 0.38, 0.32, 0.68],
-    [1.55, -0.04, 0.05, 0.62],
-  ];
+const windowTexCache = new Map();
+const sharedSphere = new THREE.SphereGeometry(1.15, 8, 7);
+const sharedHillSphere = new THREE.SphereGeometry(
+  1,
+  12,
+  8,
+  0,
+  Math.PI * 2,
+  0,
+  Math.PI * 0.52
+);
+const sharedTrunk = new THREE.CylinderGeometry(0.1, 0.15, 1.05, 6);
+const sharedLeaf = new THREE.SphereGeometry(0.66, 7, 7);
+const sharedLeafSm = new THREE.SphereGeometry(0.42, 6, 6);
+const sharedPlane = new THREE.PlaneGeometry(1, 1);
+const sharedBox = new THREE.BoxGeometry(1, 1, 1);
+const sharedCone = new THREE.ConeGeometry(1, 1, 4);
+const sharedSpire = new THREE.CylinderGeometry(0.05, 0.14, 2.1, 6);
 
-  return (
-    <group position={position} scale={scale}>
-      {puffs.map(([x, y, z, s], i) => (
-        <mesh key={i} position={[x, y, z]} scale={s} renderOrder={2}>
-          <sphereGeometry args={[1.15, 14, 12]} />
-          <meshStandardMaterial
-            color={color}
-            transparent
-            opacity={opacity}
-            depthWrite={false}
-            roughness={1}
-            metalness={0}
-            fog={false}
-          />
-        </mesh>
-      ))}
-    </group>
-  );
-}
+function getWindowTexture(cols, rows, litColor, nightLights) {
+  const night = nightLights > 0.5 ? 1 : 0;
+  const key = `${cols}x${rows}|${litColor}|${night}`;
+  const hit = windowTexCache.get(key);
+  if (hit) return hit;
 
-function WindowGrid({ width, height, cols, rows, nightLights, litColor = '#fde68a' }) {
-  const cells = [];
-  const cw = width / cols;
-  const ch = height / rows;
+  const cell = 12;
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(32, cols * cell);
+  canvas.height = Math.max(32, rows * cell);
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#1e293b';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  const cw = canvas.width / cols;
+  const ch = canvas.height / rows;
+  const glow = night ? litColor : litColor;
 
   for (let r = 0; r < rows; r += 1) {
     for (let c = 0; c < cols; c += 1) {
       const lit = (r * 3 + c) % 4 !== 0;
-      cells.push(
-        <mesh
-          key={`${r}-${c}`}
-          position={[
-            -width * 0.5 + cw * (c + 0.5),
-            -height * 0.5 + ch * (r + 0.5),
-            0.02,
-          ]}
-        >
-          <planeGeometry args={[cw * 0.6, ch * 0.54]} />
-          <meshStandardMaterial
-            color={lit ? litColor : '#1e293b'}
-            emissive={lit ? litColor : '#000000'}
-            emissiveIntensity={lit ? 0.35 + nightLights * 1.15 : 0}
-            roughness={0.4}
-          />
-        </mesh>
+      if (!lit) continue;
+      ctx.fillStyle = glow;
+      const padX = cw * 0.2;
+      const padY = ch * 0.23;
+      ctx.fillRect(
+        c * cw + padX,
+        r * ch + padY,
+        cw - padX * 2,
+        ch - padY * 2
       );
     }
   }
-  return <group>{cells}</group>;
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 2;
+  tex.needsUpdate = true;
+  windowTexCache.set(key, tex);
+  return tex;
+}
+
+function WindowFacade({ width, height, cols, rows, nightLights, litColor }) {
+  const map = useMemo(
+    () => getWindowTexture(cols, rows, litColor, nightLights),
+    [cols, rows, litColor, nightLights]
+  );
+  const emissiveIntensity = 0.28 + nightLights * 0.95;
+
+  return (
+    <mesh
+      geometry={sharedPlane}
+      scale={[width, height, 1]}
+      position={[0, 0, 0.02]}
+      dispose={null}
+    >
+      <meshStandardMaterial
+        map={map}
+        emissiveMap={map}
+        emissive="#ffffff"
+        emissiveIntensity={emissiveIntensity}
+        roughness={0.45}
+        metalness={0.05}
+        toneMapped={false}
+      />
+    </mesh>
+  );
 }
 
 function Skyscraper({
@@ -77,46 +107,55 @@ function Skyscraper({
   const cols = Math.max(3, Math.floor(w));
   const rows = Math.max(4, Math.floor(h / 1.35));
   const faces = [
-    [0, 0, d * 0.5 + 0.02, 0],
-    [0, 0, -d * 0.5 - 0.02, Math.PI],
-    [w * 0.5 + 0.02, 0, 0, Math.PI / 2],
-    [-w * 0.5 - 0.02, 0, 0, -Math.PI / 2],
+    [0, 0, d * 0.5 + 0.02, 0, w],
+    [0, 0, -d * 0.5 - 0.02, Math.PI, w],
+    [w * 0.5 + 0.02, 0, 0, Math.PI / 2, d],
+    [-w * 0.5 - 0.02, 0, 0, -Math.PI / 2, d],
   ];
 
   return (
     <group position={position}>
-      <mesh position={[0, h * 0.5, 0]} castShadow receiveShadow>
-        <boxGeometry args={[w, h, d]} />
+      <mesh
+        geometry={sharedBox}
+        position={[0, h * 0.5, 0]}
+        scale={[w, h, d]}
+        castShadow
+        receiveShadow
+        dispose={null}
+      >
         <meshStandardMaterial color={color} roughness={0.62} metalness={0.14} />
       </mesh>
 
-      {/* Cornisa superior */}
-      <mesh position={[0, h + 0.14, 0]}>
-        <boxGeometry args={[w * 0.96, 0.28, d * 0.96]} />
+      <mesh
+        geometry={sharedBox}
+        position={[0, h + 0.14, 0]}
+        scale={[w * 0.96, 0.28, d * 0.96]}
+        dispose={null}
+      >
         <meshStandardMaterial color={accent} metalness={0.3} roughness={0.48} />
       </mesh>
 
-      {/* Remate escalonado */}
       {(crown || spire) && (
-        <mesh position={[0, h + 0.85, 0]}>
-          <boxGeometry args={[w * 0.64, 1.25, d * 0.64]} />
+        <mesh
+          geometry={sharedBox}
+          position={[0, h + 0.85, 0]}
+          scale={[w * 0.64, 1.25, d * 0.64]}
+        dispose={null}
+      >
           <meshStandardMaterial color={accent} metalness={0.32} roughness={0.45} />
         </mesh>
       )}
 
-      {/* Aguja central */}
       {spire && (
-        <mesh position={[0, h + 2.4, 0]}>
-          <cylinderGeometry args={[0.05, 0.14, 2.1, 8]} />
+        <mesh geometry={sharedSpire} position={[0, h + 2.4, 0]} dispose={null}>
           <meshStandardMaterial color="#e2e8f0" metalness={0.45} roughness={0.35} />
         </mesh>
       )}
 
-      {/* Ventanas en las 4 caras */}
-      {faces.map(([fx, , fz, yaw], i) => (
+      {faces.map(([fx, , fz, yaw, faceW], i) => (
         <group key={i} position={[fx, h * 0.51, fz]} rotation={[0, yaw, 0]}>
-          <WindowGrid
-            width={(i < 2 ? w : d) * 0.82}
+          <WindowFacade
+            width={faceW * 0.82}
             height={h * 0.76}
             cols={i < 2 ? cols : Math.max(2, Math.floor(d))}
             rows={rows}
@@ -131,32 +170,56 @@ function Skyscraper({
 
 function VillageHouse({ position, size, body, roof, yaw = 0, nightLights = 0 }) {
   const [w, h, d] = size;
+  const glow = 0.45 + nightLights * 0.9;
+  const roofR = Math.max(w, d) * 0.76;
+
   return (
     <group position={position} rotation={[0, yaw, 0]}>
-      <mesh position={[0, h * 0.5, 0]} castShadow receiveShadow>
-        <boxGeometry args={[w, h, d]} />
+      <mesh
+        geometry={sharedBox}
+        position={[0, h * 0.5, 0]}
+        scale={[w, h, d]}
+        castShadow
+        receiveShadow
+        dispose={null}
+      >
         <meshStandardMaterial color={body} roughness={0.85} />
       </mesh>
-      <mesh position={[0, h + 0.5, 0]} rotation={[0, Math.PI / 4, 0]} castShadow>
-        <coneGeometry args={[Math.max(w, d) * 0.76, 1.05, 4]} />
+      <mesh
+        geometry={sharedCone}
+        position={[0, h + 0.5, 0]}
+        rotation={[0, Math.PI / 4, 0]}
+        scale={[roofR, 1.05, roofR]}
+        castShadow
+        dispose={null}
+      >
         <meshStandardMaterial color={roof} roughness={0.8} />
       </mesh>
       {[-w * 0.23, w * 0.23].map((wx, idx) => (
         <group key={idx}>
-          <mesh position={[wx, h * 0.54, d * 0.5 + 0.02]}>
-            <planeGeometry args={[0.42, 0.48]} />
+          <mesh
+            geometry={sharedPlane}
+            position={[wx, h * 0.54, d * 0.5 + 0.02]}
+            scale={[0.42, 0.48, 1]}
+        dispose={null}
+      >
             <meshStandardMaterial
               color="#fef08a"
               emissive="#facc15"
-              emissiveIntensity={0.45 + nightLights * 0.9}
+              emissiveIntensity={glow}
             />
           </mesh>
-          <mesh position={[wx, h * 0.54, -d * 0.5 - 0.02]} rotation={[0, Math.PI, 0]}>
-            <planeGeometry args={[0.42, 0.48]} />
+          <mesh
+            geometry={sharedPlane}
+            position={[wx, h * 0.54, -d * 0.5 - 0.02]}
+            rotation={[0, Math.PI, 0]}
+            scale={[0.42, 0.48, 1]}
+        dispose={null}
+      >
             <meshStandardMaterial
               color="#fef08a"
               emissive="#facc15"
-              emissiveIntensity={0.45 + nightLights * 0.9}
+              emissiveIntensity={glow}
             />
           </mesh>
         </group>
@@ -168,18 +231,51 @@ function VillageHouse({ position, size, body, roof, yaw = 0, nightLights = 0 }) 
 function BgTree({ position, scale = 1, leafColor = '#4a8c4a' }) {
   return (
     <group position={position} scale={scale}>
-      <mesh position={[0, 0.52, 0]} castShadow>
-        <cylinderGeometry args={[0.1, 0.15, 1.05, 7]} />
+      <mesh geometry={sharedTrunk} position={[0, 0.52, 0]} dispose={null}>
         <meshStandardMaterial color="#6b4423" roughness={0.9} />
       </mesh>
-      <mesh position={[0, 1.38, 0]} castShadow>
-        <sphereGeometry args={[0.66, 10, 10]} />
+      <mesh geometry={sharedLeaf} position={[0, 1.38, 0]} dispose={null}>
         <meshStandardMaterial color={leafColor} roughness={0.85} />
       </mesh>
-      <mesh position={[0.28, 1.25, 0.15]} castShadow>
-        <sphereGeometry args={[0.42, 8, 8]} />
+      <mesh geometry={sharedLeafSm} position={[0.28, 1.25, 0.15]} dispose={null}>
         <meshStandardMaterial color="#3d7a3d" roughness={0.88} />
       </mesh>
+    </group>
+  );
+}
+
+function PolyCloud({ position, scale = 1, color = '#ffffff', opacity = 0.22 }) {
+  const puffs = [
+    [0, 0, 0, 1.1],
+    [1.0, 0.12, 0.15, 0.85],
+    [-0.95, 0.08, -0.12, 0.8],
+    [0.32, 0.44, -0.28, 0.72],
+    [-0.42, 0.38, 0.32, 0.68],
+    [1.55, -0.04, 0.05, 0.62],
+  ];
+
+  return (
+    <group position={position} scale={scale}>
+      {puffs.map(([x, y, z, s], i) => (
+        <mesh
+          key={i}
+          geometry={sharedSphere}
+          position={[x, y, z]}
+          scale={s}
+          renderOrder={2}
+        dispose={null}
+      >
+          <meshStandardMaterial
+            color={color}
+            transparent
+            opacity={opacity}
+            depthWrite={false}
+            roughness={1}
+            metalness={0}
+            fog={false}
+          />
+        </mesh>
+      ))}
     </group>
   );
 }
@@ -197,10 +293,13 @@ function Hill({
 
   return (
     <group position={position} rotation={[0, yaw, 0]}>
-      <mesh scale={[1.45, yScale, depth]} position={[0, 0.02, 0]} receiveShadow>
-        <sphereGeometry
-          args={[radius, 22, 14, 0, Math.PI * 2, 0, Math.PI * 0.52]}
-        />
+      <mesh
+        geometry={sharedHillSphere}
+        scale={[radius * 1.45, radius * yScale, radius * depth]}
+        position={[0, 0.02, 0]}
+        receiveShadow
+        dispose={null}
+      >
         <meshStandardMaterial
           color={color}
           roughness={0.95}
@@ -209,13 +308,16 @@ function Hill({
         />
       </mesh>
       <mesh
-        scale={[0.82, yScale * 0.86, depth * 0.9]}
+        geometry={sharedHillSphere}
+        scale={[
+          radius * 0.68 * 0.82,
+          radius * 0.68 * yScale * 0.86,
+          radius * 0.68 * depth * 0.9,
+        ]}
         position={[radius * 0.5, 0.02, radius * depth * 0.12]}
         receiveShadow
+        dispose={null}
       >
-        <sphereGeometry
-          args={[radius * 0.68, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.52]}
-        />
         <meshStandardMaterial
           color={accent}
           roughness={0.96}
@@ -234,7 +336,6 @@ function buildDowntownCluster(zSign) {
   const z3 = zSign * 58;
 
   return [
-    // Fila frontal del centro financiero (compacta y variada)
     [-19.5, 0, z1, 3.6, 10.5, 3.3, '#7b8fa3', '#475569', '#fde68a', false, false],
     [-14.8, 0, z1 + zSign * 1.5, 3.4, 14.2, 3.2, '#5d8aa8', '#1e3a5f', '#e0f2fe', false, false],
     [-10.2, 0, z1, 4.0, 11.4, 3.5, '#9aa8b8', '#334155', '#fde68a', false, false],
@@ -246,7 +347,6 @@ function buildDowntownCluster(zSign) {
     [17.4, 0, z1, 4.0, 11.6, 3.5, '#a89584', '#6b4423', '#fef3c7', false, false],
     [22.0, 0, z1 + zSign * 1.5, 3.5, 12.6, 3.2, '#8295a6', '#334155', '#e0f2fe', false, false],
 
-    // Segunda fila (rellena huecos y da profundidad)
     [-17.0, 0, z2, 3.8, 13.2, 3.4, '#687a8c', '#334155', '#fde68a', false, false],
     [-12.2, 0, z2 + zSign * 1, 3.6, 15.8, 3.3, '#5c7c99', '#1e3a5f', '#bae6fd', false, true],
     [-7.6, 0, z2, 4.0, 12.2, 3.4, '#8c7f75', '#574e47', '#fef3c7', false, false],
@@ -257,7 +357,6 @@ function buildDowntownCluster(zSign) {
     [15.2, 0, z2 + zSign * 1, 3.8, 13.4, 3.3, '#6e8599', '#334155', '#e0f2fe', false, false],
     [19.8, 0, z2, 3.6, 10.8, 3.2, '#9e8b7a', '#5c4d44', '#fef3c7', false, false],
 
-    // Tercera fila (silueta trasera alta)
     [-10.0, 0, z3, 4.2, 14.5, 3.5, '#708294', '#334155', '#fde68a', false, false],
     [-2.0, 0, z3, 4.4, 17.0, 3.6, '#5c7a94', '#1e3a5f', '#e0f2fe', false, false],
     [5.5, 0, z3, 4.2, 16.2, 3.5, '#788999', '#334155', '#fde68a', false, false],
@@ -271,81 +370,82 @@ export function Environment({ atmosphere }) {
   const horizonColor =
     atmosphere?.fogColor || (nightLights > 0.5 ? '#101b2d' : '#dce8f4');
 
-  // Barrio residencial intermedio (ubicado a media distancia z=±26..37 para no estorbar la cámara)
-  const village = [
-    // Hemisferio Norte (-Z)
-    [-20, 0, -26, 2.7, 2.2, 2.1, '#e6d5b8', '#8c4a3c', 0.08],
-    [-13, 0, -29, 3.0, 2.6, 2.2, '#d8c4a8', '#526b56', -0.05],
-    [-6, 0, -27, 2.6, 2.2, 2.0, '#e3bfb0', '#7d3f35', 0.04],
-    [1, 0, -30, 3.1, 2.7, 2.3, '#d0dce2', '#455a64', 0],
-    [8, 0, -28, 2.8, 2.3, 2.1, '#e8cfa6', '#7f4f24', -0.06],
-    [15, 0, -30, 3.0, 2.6, 2.2, '#d6c8bd', '#5c4d44', 0.05],
-    [21, 0, -26, 2.6, 2.1, 2.0, '#cad9cc', '#3d5a45', -0.04],
-    [-15, 0, -36, 3.2, 2.8, 2.4, '#cfd8dc', '#455a64', 0],
-    [-3, 0, -37, 3.4, 3.0, 2.5, '#dfd3c3', '#6d4c41', 0.04],
-    [10, 0, -36, 3.3, 2.9, 2.4, '#c8d6ca', '#3d5a45', -0.05],
+  const village = useMemo(
+    () => [
+      [-20, 0, -26, 2.7, 2.2, 2.1, '#e6d5b8', '#8c4a3c', 0.08],
+      [-13, 0, -29, 3.0, 2.6, 2.2, '#d8c4a8', '#526b56', -0.05],
+      [-6, 0, -27, 2.6, 2.2, 2.0, '#e3bfb0', '#7d3f35', 0.04],
+      [1, 0, -30, 3.1, 2.7, 2.3, '#d0dce2', '#455a64', 0],
+      [8, 0, -28, 2.8, 2.3, 2.1, '#e8cfa6', '#7f4f24', -0.06],
+      [15, 0, -30, 3.0, 2.6, 2.2, '#d6c8bd', '#5c4d44', 0.05],
+      [21, 0, -26, 2.6, 2.1, 2.0, '#cad9cc', '#3d5a45', -0.04],
+      [-15, 0, -36, 3.2, 2.8, 2.4, '#cfd8dc', '#455a64', 0],
+      [-3, 0, -37, 3.4, 3.0, 2.5, '#dfd3c3', '#6d4c41', 0.04],
+      [10, 0, -36, 3.3, 2.9, 2.4, '#c8d6ca', '#3d5a45', -0.05],
+      [-20, 0, 26, 2.7, 2.2, 2.1, '#e6d5b8', '#8c4a3c', Math.PI],
+      [-13, 0, 29, 3.0, 2.6, 2.2, '#d8c4a8', '#526b56', Math.PI],
+      [-6, 0, 27, 2.6, 2.2, 2.0, '#e3bfb0', '#7d3f35', Math.PI],
+      [1, 0, 30, 3.1, 2.7, 2.3, '#d0dce2', '#455a64', Math.PI],
+      [8, 0, 28, 2.8, 2.3, 2.1, '#e8cfa6', '#7f4f24', Math.PI],
+      [15, 0, 30, 3.0, 2.6, 2.2, '#d6c8bd', '#5c4d44', Math.PI],
+      [21, 0, 26, 2.6, 2.1, 2.0, '#cad9cc', '#3d5a45', Math.PI],
+      [-15, 0, 36, 3.2, 2.8, 2.4, '#cfd8dc', '#455a64', Math.PI],
+      [-3, 0, 37, 3.4, 3.0, 2.5, '#dfd3c3', '#6d4c41', Math.PI],
+      [10, 0, 36, 3.3, 2.9, 2.4, '#c8d6ca', '#3d5a45', Math.PI],
+    ],
+    []
+  );
 
-    // Hemisferio Sur (+Z, detrás del mall y casas sur)
-    [-20, 0, 26, 2.7, 2.2, 2.1, '#e6d5b8', '#8c4a3c', Math.PI],
-    [-13, 0, 29, 3.0, 2.6, 2.2, '#d8c4a8', '#526b56', Math.PI],
-    [-6, 0, 27, 2.6, 2.2, 2.0, '#e3bfb0', '#7d3f35', Math.PI],
-    [1, 0, 30, 3.1, 2.7, 2.3, '#d0dce2', '#455a64', Math.PI],
-    [8, 0, 28, 2.8, 2.3, 2.1, '#e8cfa6', '#7f4f24', Math.PI],
-    [15, 0, 30, 3.0, 2.6, 2.2, '#d6c8bd', '#5c4d44', Math.PI],
-    [21, 0, 26, 2.6, 2.1, 2.0, '#cad9cc', '#3d5a45', Math.PI],
-    [-15, 0, 36, 3.2, 2.8, 2.4, '#cfd8dc', '#455a64', Math.PI],
-    [-3, 0, 37, 3.4, 3.0, 2.5, '#dfd3c3', '#6d4c41', Math.PI],
-    [10, 0, 36, 3.3, 2.9, 2.4, '#c8d6ca', '#3d5a45', Math.PI],
-  ];
+  const bgTrees = useMemo(
+    () => [
+      [-22, -21, 1.05], [-16, -22, 0.95], [-10, -21.5, 1.1], [-4, -22.5, 0.9],
+      [2, -21.5, 1.0], [8, -22, 1.08], [14, -21.5, 0.95], [20, -21, 1.05],
+      [-18, -32, 1.1], [-8, -33, 1.05], [4, -33.5, 1.1], [15, -32.5, 1.0],
+      [-22, 21, 1.05], [-16, 22, 0.95], [-10, 21.5, 1.1], [-4, 22.5, 0.9],
+      [2, 21.5, 1.0], [8, 22, 1.08], [14, 21.5, 0.95], [20, 21, 1.05],
+      [-18, 32, 1.1], [-8, 33, 1.05], [4, 33.5, 1.1], [15, 32.5, 1.0],
+    ],
+    []
+  );
 
-  const bgTrees = [
-    // Franja norte
-    [-22, -21, 1.05], [-16, -22, 0.95], [-10, -21.5, 1.1], [-4, -22.5, 0.9],
-    [2, -21.5, 1.0], [8, -22, 1.08], [14, -21.5, 0.95], [20, -21, 1.05],
-    [-18, -32, 1.1], [-8, -33, 1.05], [4, -33.5, 1.1], [15, -32.5, 1.0],
-    // Franja sur
-    [-22, 21, 1.05], [-16, 22, 0.95], [-10, 21.5, 1.1], [-4, 22.5, 0.9],
-    [2, 21.5, 1.0], [8, 22, 1.08], [14, 21.5, 0.95], [20, 21, 1.05],
-    [-18, 32, 1.1], [-8, 33, 1.05], [4, 33.5, 1.1], [15, 32.5, 1.0],
-  ];
+  const skyline = useMemo(
+    () => [
+      ...buildDowntownCluster(-1),
+      ...buildDowntownCluster(1),
+      [52, 0, -22, 3.8, 12.0, 3.3, '#8b9aab', '#475569', '#fde68a', false, false],
+      [54, 0, 20, 3.8, 11.5, 3.3, '#9aa8b8', '#475569', '#e0f2fe', false, false],
+      [-52, 0, -22, 3.8, 12.5, 3.3, '#6e9bbb', '#1e40af', '#bae6fd', false, false],
+      [-54, 0, 20, 4.0, 11.0, 3.4, '#b8957a', '#6b4423', '#fef3c7', false, false],
+    ],
+    []
+  );
 
-  const skyline = [
-    ...buildDowntownCluster(-1),
-    ...buildDowntownCluster(1),
-    // Flancos Este / Oeste lejanos
-    [52, 0, -22, 3.8, 12.0, 3.3, '#8b9aab', '#475569', '#fde68a', false, false],
-    [54, 0, 20, 3.8, 11.5, 3.3, '#9aa8b8', '#475569', '#e0f2fe', false, false],
-    [-52, 0, -22, 3.8, 12.5, 3.3, '#6e9bbb', '#1e40af', '#bae6fd', false, false],
-    [-54, 0, 20, 4.0, 11.0, 3.4, '#b8957a', '#6b4423', '#fef3c7', false, false],
-  ];
-
-  // Nubes translúcidas elevadas
-  const clouds = [
-    [-18, 21, -32, 3.2, 0.22],
-    [3, 23, -36, 3.6, 0.2],
-    [20, 20, -28, 3.0, 0.22],
-    [-26, 22, -14, 2.9, 0.19],
-    [12, 23, -12, 2.6, 0.19],
-    [-18, 21, 32, 3.2, 0.22],
-    [3, 23, 36, 3.6, 0.2],
-    [20, 20, 28, 3.0, 0.22],
-    [-26, 22, 14, 2.9, 0.19],
-    [12, 23, 12, 2.6, 0.19],
-  ];
+  const clouds = useMemo(
+    () => [
+      [-18, 21, -32, 3.2, 0.22],
+      [3, 23, -36, 3.6, 0.2],
+      [20, 20, -28, 3.0, 0.22],
+      [-26, 22, -14, 2.9, 0.19],
+      [12, 23, -12, 2.6, 0.19],
+      [-18, 21, 32, 3.2, 0.22],
+      [3, 23, 36, 3.6, 0.2],
+      [20, 20, 28, 3.0, 0.22],
+      [-26, 22, 14, 2.9, 0.19],
+      [12, 23, 12, 2.6, 0.19],
+    ],
+    []
+  );
 
   return (
     <group>
-      {/* Fondo y niebla sincronizados para eliminar cortes en el horizonte */}
       <color attach="background" args={[horizonColor]} />
       <fog attach="fog" args={[horizonColor, 46, 115]} />
 
-      {/* Suelo circular amplio (radio > fog.far) para transición suave en 360° */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.03, 0]} receiveShadow>
-        <circleGeometry args={[145, 64]} />
+        <circleGeometry args={[145, 48]} />
         <meshStandardMaterial color={ground} roughness={1} />
       </mesh>
 
-      {/* Cerros enmarcando los costados y el fondo lejano (dejan el valle central libre para el skyline) */}
       <Hill position={[-38, 0, -52]} radius={19} height={11.5} depth={0.42} color="#5b9154" accent="#497a44" yaw={0.12} />
       <Hill position={[38, 0, -52]} radius={19} height={11.5} depth={0.42} color="#669e5e" accent="#52854c" yaw={-0.12} />
       <Hill position={[0, 0, -70]} radius={24} height={10.5} depth={0.32} color="#6ea866" accent="#588f52" yaw={0} />
@@ -359,7 +459,6 @@ export function Environment({ atmosphere }) {
       <Hill position={[64, 0, -16]} radius={18} height={9.5} depth={0.45} color="#588c52" accent="#467542" yaw={-1.4} />
       <Hill position={[64, 0, 18]} radius={18} height={9.5} depth={0.45} color="#5e9457" accent="#4c7d47" yaw={-1.6} />
 
-      {/* Barrio intermedio y árboles */}
       {village.map(([x, y, z, w, h, d, body, roof, yaw], i) => (
         <VillageHouse
           key={`vh-${i}`}
@@ -380,7 +479,6 @@ export function Environment({ atmosphere }) {
         />
       ))}
 
-      {/* Skyline urbano denso en ambos lados */}
       {skyline.map(([x, , z, w, h, d, color, accent, litColor, spire, crown], i) => (
         <Skyscraper
           key={`sky-${i}`}
@@ -395,7 +493,6 @@ export function Environment({ atmosphere }) {
         />
       ))}
 
-      {/* Nubes translúcidas */}
       {clouds.map(([x, y, z, scale, opacity], i) => (
         <PolyCloud
           key={`cloud-${i}`}
