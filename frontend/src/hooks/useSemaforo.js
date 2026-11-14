@@ -52,7 +52,7 @@ export const useSemaforo = () => {
           setMensaje('⚠️ WebSocket cerrado. Reintentando…');
           window.setTimeout(conectarWS, 1500);
         };
-      } catch (err) {
+      } catch {
         window.setTimeout(conectarWS, 2000);
       }
     };

@@ -1,7 +1,7 @@
 import { useFrame } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
-import { MALL_DOOR, MALL_ENTRANCE } from './Mall';
+import { MALL_DOOR, MALL_ENTRANCE } from './mallLayout';
 import {
   publishPedestrian,
   vehicleBlocksCrosswalk,
@@ -351,14 +351,3 @@ export function Pedestrian({
     </group>
   );
 }
-
-// Reexports para el orquestador / compatibilidad
-export {
-  MAX_PEDESTRIANS,
-  PEDESTRIAN_PRESETS,
-  makeInitialAgents,
-  clampAgents,
-  nextTripRoute,
-  makeBusPassengers,
-  buildRoute,
-} from './agents/pedestrianAgents';

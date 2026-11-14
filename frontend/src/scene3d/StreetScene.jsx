@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { Canvas, useFrame } from '@react-three/fiber';
 import { Cloud, OrbitControls, Sky } from '@react-three/drei';
 import * as THREE from 'three';
 import { Houses } from './Houses';
@@ -18,25 +18,21 @@ import {
 
 const AUTO_CYCLE_SECONDS = 90;
 
-function ToneMappingSetup() {
-  const { gl } = useThree();
-  useEffect(() => {
-    gl.toneMapping = THREE.ACESFilmicToneMapping;
-    gl.toneMappingExposure = 1.05;
-    gl.shadowMap.enabled = true;
-    gl.shadowMap.type = THREE.PCFSoftShadowMap;
-  }, [gl]);
-  return null;
-}
-
 function AtmosphereRig({ ambienceMode, onAtmosphere }) {
   const phaseRef = useRef(0);
   const accRef = useRef(0);
   const lightRef = useRef();
   const hemiRef = useRef();
   const ambRef = useRef();
-  const [atm, setAtm] = useState(() =>
-    sampleAtmosphere(ambienceMode === 'auto' ? 'day' : ambienceMode)
+  // Solo el modo "auto" escribe estado desde useFrame; el resto se deriva.
+  const [autoAtm, setAutoAtm] = useState(() => sampleAtmosphere('day'));
+
+  const atm = useMemo(
+    () =>
+      ambienceMode === 'auto'
+        ? autoAtm
+        : sampleAtmosphere(ambienceMode),
+    [ambienceMode, autoAtm]
   );
 
   const applyLive = (next) => {
@@ -62,17 +58,20 @@ function AtmosphereRig({ ambienceMode, onAtmosphere }) {
     accRef.current += delta;
     if (accRef.current > 0.35) {
       accRef.current = 0;
-      setAtm(next);
+      setAutoAtm(next);
       onAtmosphere?.(next);
     }
   });
 
   useEffect(() => {
-    if (ambienceMode === 'auto') return;
+    if (ambienceMode === 'auto') return undefined;
     const next = sampleAtmosphere(ambienceMode);
-    setAtm(next);
-    onAtmosphere?.(next);
-    applyLive(next);
+    // Aviso al padre en callback diferido (no setState local síncrono).
+    const t = window.setTimeout(() => {
+      onAtmosphere?.(next);
+      applyLive(next);
+    }, 0);
+    return () => window.clearTimeout(t);
   }, [ambienceMode, onAtmosphere]);
 
   const sunPos = useMemo(() => sunPositionFromAtmosphere(atm), [atm]);
@@ -179,7 +178,6 @@ function SceneContent({
 
   return (
     <>
-      <ToneMappingSetup />
       <AtmosphereRig ambienceMode={ambienceMode} onAtmosphere={setAtmosphere} />
 
       <Environment atmosphere={atmosphere} />
@@ -263,7 +261,15 @@ export function StreetScene({
         shadows
         camera={{ position: [14, 10, 16], fov: 42 }}
         dpr={[1, 1.75]}
-        gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping }}
+        gl={{
+          antialias: true,
+          toneMapping: THREE.ACESFilmicToneMapping,
+          toneMappingExposure: 1.05,
+        }}
+        onCreated={({ gl }) => {
+          gl.shadowMap.enabled = true;
+          gl.shadowMap.type = THREE.PCFSoftShadowMap;
+        }}
       >
         <SceneContent
           estado={estado}

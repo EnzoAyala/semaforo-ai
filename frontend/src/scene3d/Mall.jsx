@@ -1,6 +1,3 @@
-export const MALL_DOOR = [9.2, 0.55, 9.0];
-export const MALL_ENTRANCE = [9.2, 0.55, 8.15];
-
 export function Mall({ nightLights = 0 }) {
   const glow = 0.2 + nightLights * 1.2;
 
@@ -10,7 +7,6 @@ export function Mall({ nightLights = 0 }) {
         <boxGeometry args={[9.5, 4.4, 5.2]} />
         <meshStandardMaterial color="#c5d0dc" roughness={0.65} metalness={0.18} />
       </mesh>
-      {/* Franja acento */}
       <mesh position={[0, 3.8, -2.62]}>
         <boxGeometry args={[9.6, 0.55, 0.12]} />
         <meshStandardMaterial
@@ -33,7 +29,6 @@ export function Mall({ nightLights = 0 }) {
           emissiveIntensity={0.2 + nightLights * 0.8}
         />
       </mesh>
-      {/* Puertas */}
       {[-2.3, 0.6].map((x) => (
         <mesh key={x} position={[x, 1.1, -2.62]}>
           <boxGeometry args={[2.1, 2.2, 0.15]} />
@@ -75,7 +70,6 @@ export function Mall({ nightLights = 0 }) {
           <meshStandardMaterial color="#64748b" metalness={0.5} roughness={0.4} />
         </mesh>
       ))}
-      {/* Luces marquesina */}
       {[-2.2, -0.8, 0.6].map((x) => (
         <mesh key={`spot-${x}`} position={[x, 2.2, -3.5]}>
           <sphereGeometry args={[0.08, 8, 8]} />

@@ -12,9 +12,16 @@ export function PeakHoursCard({ compact = false, onNotificar }) {
   }, []);
 
   useEffect(() => {
-    cargar();
-    const id = setInterval(cargar, 30000);
-    return () => clearInterval(id);
+    const kickoff = window.setTimeout(() => {
+      void cargar();
+    }, 0);
+    const id = window.setInterval(() => {
+      void cargar();
+    }, 30000);
+    return () => {
+      window.clearTimeout(kickoff);
+      window.clearInterval(id);
+    };
   }, [cargar]);
 
   const actualizar = async () => {

@@ -18,7 +18,10 @@ export function EmailSubscriptionCard({ onNotificar, compact = false }) {
   }, []);
 
   useEffect(() => {
-    cargar();
+    const t = window.setTimeout(() => {
+      void cargar();
+    }, 0);
+    return () => window.clearTimeout(t);
   }, [cargar]);
 
   const suscribir = async () => {

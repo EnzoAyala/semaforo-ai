@@ -116,7 +116,7 @@ semaforo-ai/
 ├── frontend/                # Dashboard React + Vite
 │   └── src/
 │       ├── components/      # layout, drawers, modals, cards, chat
-│       ├── scene3d/         # sim 3D (agents/, persistence/, meshes)
+│       ├── scene3d/         # sim 3D (agents/, persistence/, simulation/, meshes)
 │       ├── services/        # API client (config + http)
 │       ├── styles/          # CSS por dominio
 │       └── hooks/

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { X } from 'lucide-react';
 import { semaforoService } from '../../services/api';
 
@@ -134,28 +134,43 @@ export function HistoryModal({ open, onClose, refreshKey = 0 }) {
   const [salud, setSalud] = useState(null);
   const [error, setError] = useState('');
 
-  const cargar = useCallback(async () => {
-    try {
-      const [histEventos, histEstados, saludSensor] = await Promise.all([
-        semaforoService.obtenerHistorialEventos(200),
-        semaforoService.obtenerHistorialEstados(200),
-        semaforoService.obtenerSaludSensor(),
-      ]);
-      setEventos(histEventos?.eventos || []);
-      setEstados(histEstados?.estados || []);
-      setSalud(saludSensor);
-      setError('');
-    } catch (err) {
-      setError(err.message || 'No se pudo cargar el historial');
-    }
-  }, []);
-
   useEffect(() => {
     if (!open) return undefined;
-    cargar();
-    const id = setInterval(cargar, 4000);
-    return () => clearInterval(id);
-  }, [cargar, refreshKey, open]);
+
+    let cancelled = false;
+
+    const cargar = async () => {
+      try {
+        const [histEventos, histEstados, saludSensor] = await Promise.all([
+          semaforoService.obtenerHistorialEventos(200),
+          semaforoService.obtenerHistorialEstados(200),
+          semaforoService.obtenerSaludSensor(),
+        ]);
+        if (cancelled) return;
+        setEventos(histEventos?.eventos || []);
+        setEstados(histEstados?.estados || []);
+        setSalud(saludSensor);
+        setError('');
+      } catch (err) {
+        if (cancelled) return;
+        setError(err.message || 'No se pudo cargar el historial');
+      }
+    };
+
+    // Diferir la primera carga: setState solo en callback async (no sync en el effect).
+    const kickoff = window.setTimeout(() => {
+      void cargar();
+    }, 0);
+    const id = window.setInterval(() => {
+      void cargar();
+    }, 4000);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(kickoff);
+      window.clearInterval(id);
+    };
+  }, [refreshKey, open]);
 
   const counts = useMemo(() => {
     const map = { pir: 0, button: 0, ui: 0 };

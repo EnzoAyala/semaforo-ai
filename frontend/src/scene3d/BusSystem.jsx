@@ -1,6 +1,6 @@
 import { useFrame } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { LANES } from './Cars';
+import { LANES } from './roadLanes';
 import {
   leadGap,
   pedestriansOnCrosswalk,
@@ -317,12 +317,12 @@ export function BusFleet({
     }
   });
 
+  // Posición inicial fija en JSX; useFrame actualiza mesh.position cada frame.
+  const initialX =
+    typeof savedBus?.x === 'number' ? savedBus.x : START_X;
+
   return (
-    <group
-      ref={ref}
-      position={[x.current, 0.4, BUS_Z]}
-      visible={visible}
-    >
+    <group ref={ref} position={[initialX, 0.4, BUS_Z]} visible={visible}>
       <BusVisual visualRef={visual} nightLights={nightLights} />
     </group>
   );

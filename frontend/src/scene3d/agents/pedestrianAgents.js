@@ -4,8 +4,8 @@ import {
   NORTH_HOUSES,
   SOUTH_HOUSES,
   houseDoor,
-} from '../Houses';
-import { MALL_DOOR } from '../Mall';
+} from '../houseLayout';
+import { MALL_DOOR } from '../mallLayout';
 
 const Y = 0.55;
 

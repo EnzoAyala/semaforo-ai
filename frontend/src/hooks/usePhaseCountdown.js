@@ -2,27 +2,26 @@ import { useEffect, useRef, useState } from 'react';
 
 /**
  * Cuenta atrás suave sincronizada con el servidor.
- * El WS/HTTP manda snapshots ~1/s; aquí se interpola cada 100ms para que se vea mover.
+ * El WS/HTTP manda snapshots ~1/s; aquí se interpola cada 100ms.
+ *
+ * El effect solo actualiza el ref `endAt`; el interval es quien llama setState
+ * (evita set-state-in-effect).
  */
 export function usePhaseCountdown(estado) {
   const [secs, setSecs] = useState(() =>
     Math.max(0, Number(estado?.tiempo_restante_seg) || 0)
   );
   const endAt = useRef(null);
-  const lastModo = useRef(estado?.modo);
 
   useEffect(() => {
     const modo = estado?.modo || 'REPOSO';
     const rem = Math.max(0, Number(estado?.tiempo_restante_seg) || 0);
-    lastModo.current = modo;
 
     if (modo === 'REPOSO' || rem <= 0) {
       endAt.current = null;
-      setSecs(0);
       return;
     }
 
-    // Resync con el servidor (permite corrección sin saltos bruscos grandes)
     const proposed = performance.now() + rem * 1000;
     if (endAt.current == null) {
       endAt.current = proposed;

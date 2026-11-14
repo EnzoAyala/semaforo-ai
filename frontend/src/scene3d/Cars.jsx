@@ -6,6 +6,7 @@ import {
   publishBucket,
 } from './vehicleRegistry';
 import { patchSimStore, readSimStore } from './persistence/simPersistence';
+import { LANES } from './roadLanes';
 
 const MIN_GAP = 4.2;
 const TRACK_MIN = -26;
@@ -21,14 +22,7 @@ const ZEBRA_EDGE = 2.0;
 /** Anticipación de frenado al acercarse en rojo */
 const APPROACH_BRAKE_DIST = 14;
 
-export const LANES = {
-  eastOuter: -4.4,
-  eastInner: -2.0,
-  westInner: 2.0,
-  westOuter: 4.4,
-};
-
-function CarVisual({ color, visualRef }) {
+function CarVisual({ color, visualsRef, visualIndex }) {
   const root = useRef();
   const wheels = useRef([]);
   const headL = useRef();
@@ -37,7 +31,7 @@ function CarVisual({ color, visualRef }) {
   const brakeR = useRef();
 
   useFrame(() => {
-    const v = visualRef.current;
+    const v = visualsRef.current[visualIndex];
     if (!v || !root.current) return;
     root.current.rotation.x = v.pitch;
     wheels.current.forEach((w) => {
@@ -359,9 +353,13 @@ function LaneFleet({
           ref={(el) => {
             refs.current[i] = el;
           }}
-          position={[xs.current[i] ?? car.startX, 0.22, laneZ]}
+          position={[car.startX, 0.22, laneZ]}
         >
-          <CarVisual color={car.color} visualRef={{ current: visuals.current[i] }} />
+          <CarVisual
+            color={car.color}
+            visualsRef={visuals}
+            visualIndex={i}
+          />
         </group>
       ))}
     </group>
