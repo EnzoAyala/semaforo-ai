@@ -206,6 +206,7 @@ function SceneContent({
         luzPeatonal={luzPeatonal}
         tiempoRestante={tiempoRestante}
         modo={modo}
+        sensorActivo={modo === 'REPOSO'}
       />
 
       {agents.map((a) => (

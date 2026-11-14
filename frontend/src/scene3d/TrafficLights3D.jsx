@@ -121,7 +121,91 @@ function VehicleSignal({
   );
 }
 
-function PedSignal({ position, yaw = 0, luzPeatonal, tiempoRestante = 0 }) {
+/**
+ * Sensor PIR físico (caja + cúpula Fresnel + LED de estado).
+ * faceSign: +1 mira hacia +Z (sur), -1 mira hacia -Z (norte).
+ */
+function PirSensor({ position, yaw = 0, active = true }) {
+  const ledColor = active ? '#22c55e' : '#ef4444';
+  const ledGlow = active ? 1.6 : 0.55;
+
+  return (
+    <group position={position} rotation={[0, yaw, 0]}>
+      {/* Pedestal */}
+      <mesh position={[0, 0.12, 0]} castShadow receiveShadow>
+        <cylinderGeometry args={[0.16, 0.2, 0.24, 10]} />
+        <meshStandardMaterial color="#6b7280" metalness={0.35} roughness={0.55} />
+      </mesh>
+      <mesh position={[0, 0.7, 0]} castShadow>
+        <cylinderGeometry args={[0.055, 0.07, 1.0, 10]} />
+        <meshStandardMaterial color="#374151" metalness={0.5} roughness={0.4} />
+      </mesh>
+
+      {/* Cabezal / carcasa */}
+      <group position={[0, 1.28, 0]}>
+        <mesh castShadow>
+          <boxGeometry args={[0.42, 0.36, 0.28]} />
+          <meshStandardMaterial color="#111827" metalness={0.4} roughness={0.35} />
+        </mesh>
+        {/* Visera */}
+        <mesh position={[0, 0.14, 0.12]} castShadow>
+          <boxGeometry args={[0.46, 0.06, 0.22]} />
+          <meshStandardMaterial color="#0b1220" metalness={0.45} roughness={0.4} />
+        </mesh>
+        {/* Cúpula / lente Fresnel */}
+        <mesh position={[0, 0.02, 0.16]} castShadow>
+          <sphereGeometry args={[0.13, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.55]} />
+          <meshStandardMaterial
+            color="#fde68a"
+            emissive="#f59e0b"
+            emissiveIntensity={active ? 0.55 : 0.12}
+            transparent
+            opacity={0.85}
+            roughness={0.25}
+            metalness={0.05}
+          />
+        </mesh>
+        {/* Anillo del sensor */}
+        <mesh position={[0, 0.02, 0.15]} rotation={[Math.PI / 2, 0, 0]}>
+          <torusGeometry args={[0.135, 0.018, 8, 20]} />
+          <meshStandardMaterial color="#4b5563" metalness={0.5} roughness={0.4} />
+        </mesh>
+        {/* LED estado: verde = PIR activo (REPOSO), rojo = bloqueado */}
+        <mesh position={[0.14, 0.12, 0.15]}>
+          <sphereGeometry args={[0.035, 10, 10]} />
+          <meshStandardMaterial
+            color={ledColor}
+            emissive={ledColor}
+            emissiveIntensity={ledGlow}
+            roughness={0.2}
+          />
+        </mesh>
+        {/* Etiqueta PIR */}
+        <mesh position={[0, -0.1, 0.145]}>
+          <boxGeometry args={[0.28, 0.08, 0.02]} />
+          <meshStandardMaterial color="#1e293b" roughness={0.6} />
+        </mesh>
+        <Text
+          position={[0, -0.1, 0.16]}
+          fontSize={0.055}
+          color="#e2e8f0"
+          anchorX="center"
+          anchorY="middle"
+        >
+          PIR
+        </Text>
+      </group>
+    </group>
+  );
+}
+
+function PedSignal({
+  position,
+  yaw = 0,
+  luzPeatonal,
+  tiempoRestante = 0,
+  sensorActivo = true,
+}) {
   const showTimer = luzPeatonal === 'VERDE';
 
   return (
@@ -147,12 +231,13 @@ function PedSignal({ position, yaw = 0, luzPeatonal, tiempoRestante = 0 }) {
         position={[0.55, 3.4, 0.12]}
         scale={0.72}
       />
-      <mesh position={[0.22, 1.35, 0.12]} castShadow>
-        <boxGeometry args={[0.28, 0.38, 0.18]} />
+      {/* Pulsador peatonal (aparte del PIR) */}
+      <mesh position={[0.22, 1.15, 0.12]} castShadow>
+        <boxGeometry args={[0.26, 0.32, 0.16]} />
         <meshStandardMaterial color="#9ca3af" metalness={0.35} roughness={0.45} />
       </mesh>
-      <mesh position={[0.22, 1.35, 0.22]}>
-        <cylinderGeometry args={[0.07, 0.07, 0.05, 12]} />
+      <mesh position={[0.22, 1.15, 0.21]}>
+        <cylinderGeometry args={[0.065, 0.065, 0.05, 12]} />
         <meshStandardMaterial
           color="#facc15"
           emissive="#eab308"
@@ -160,6 +245,32 @@ function PedSignal({ position, yaw = 0, luzPeatonal, tiempoRestante = 0 }) {
           roughness={0.35}
         />
       </mesh>
+      {/* Mini PIR en el poste, mirando a la vereda de espera */}
+      <group position={[-0.28, 1.35, 0.05]}>
+        <mesh castShadow>
+          <boxGeometry args={[0.2, 0.18, 0.16]} />
+          <meshStandardMaterial color="#1f2937" metalness={0.4} roughness={0.4} />
+        </mesh>
+        <mesh position={[0, 0.01, 0.09]}>
+          <sphereGeometry args={[0.07, 12, 10, 0, Math.PI * 2, 0, Math.PI * 0.6]} />
+          <meshStandardMaterial
+            color="#fde68a"
+            emissive="#f59e0b"
+            emissiveIntensity={sensorActivo ? 0.5 : 0.1}
+            transparent
+            opacity={0.8}
+            roughness={0.3}
+          />
+        </mesh>
+        <mesh position={[0.07, 0.06, 0.09]}>
+          <sphereGeometry args={[0.022, 8, 8]} />
+          <meshStandardMaterial
+            color={sensorActivo ? '#22c55e' : '#ef4444'}
+            emissive={sensorActivo ? '#22c55e' : '#ef4444'}
+            emissiveIntensity={sensorActivo ? 1.4 : 0.5}
+          />
+        </mesh>
+      </group>
     </group>
   );
 }
@@ -169,8 +280,9 @@ export function TrafficLights3D({
   luzPeatonal = 'ROJO',
   tiempoRestante = 0,
   modo = '',
+  sensorActivo = true,
 }) {
-  // En reposo 120s (COOLDOWN) el vehicular está verde: igual mostramos cuenta atrás
+  // En cooldown el vehicular está verde: igual mostramos cuenta atrás
   const vehicleSeconds =
     modo === 'COOLDOWN' || luzVehicular === 'ROJO' || luzVehicular === 'AMARILLO'
       ? tiempoRestante
@@ -202,24 +314,40 @@ export function TrafficLights3D({
         yaw={0}
         luzPeatonal={luzPeatonal}
         tiempoRestante={pedSeconds}
+        sensorActivo={sensorActivo}
       />
       <PedSignal
         position={[2.3, 0, 6.3]}
         yaw={0}
         luzPeatonal={luzPeatonal}
         tiempoRestante={pedSeconds}
+        sensorActivo={sensorActivo}
       />
       <PedSignal
         position={[-2.3, 0, -6.3]}
         yaw={Math.PI}
         luzPeatonal={luzPeatonal}
         tiempoRestante={pedSeconds}
+        sensorActivo={sensorActivo}
       />
       <PedSignal
         position={[2.3, 0, -6.3]}
         yaw={Math.PI}
         luzPeatonal={luzPeatonal}
         tiempoRestante={pedSeconds}
+        sensorActivo={sensorActivo}
+      />
+
+      {/* PIR independientes en ambos sentidos del cruce (sur + norte) */}
+      <PirSensor
+        position={[0.15, 0, 7.55]}
+        yaw={0}
+        active={sensorActivo}
+      />
+      <PirSensor
+        position={[-0.15, 0, -7.55]}
+        yaw={Math.PI}
+        active={sensorActivo}
       />
     </group>
   );
