@@ -27,7 +27,6 @@ export function SimulationView({
   onEstado,
 }) {
   const [ready, setReady] = useState(false);
-  const [simEpoch, setSimEpoch] = useState(0);
   const [agents, setAgents] = useState(() => makeInitialAgents());
   const [auto, setAuto] = useState(true);
   const [ambienceMode, setAmbienceMode] = useState('day');
@@ -37,6 +36,15 @@ export function SimulationView({
   const posesRef = useRef({});
   const autoRef = useRef(auto);
   const ambienceRef = useRef(ambienceMode);
+
+  // Evita setState en App durante el render de SimulationView
+  const notify = useCallback(
+    (msg) => {
+      if (!msg) return;
+      queueMicrotask(() => onNotificar?.(msg));
+    },
+    [onNotificar]
+  );
 
   useEffect(() => {
     agentsRef.current = agents.map((a) => ({
@@ -56,7 +64,6 @@ export function SimulationView({
   useSimSync({
     ready,
     setReady,
-    setSimEpoch,
     setAgents,
     setAuto,
     setAmbienceMode,
@@ -64,7 +71,7 @@ export function SimulationView({
     agentsRef,
     autoRef,
     ambienceRef,
-    onNotificar,
+    onNotificar: notify,
   });
 
   const setAgentPhase = useCallback((id, phase) => {
@@ -86,7 +93,7 @@ export function SimulationView({
     estado,
     tiempoRestante,
     agentsRef,
-    onNotificar,
+    onNotificar: notify,
     onEstado,
   });
 
@@ -98,7 +105,7 @@ export function SimulationView({
     autoRef,
     triggerFiredRef,
     setAgentPhase,
-    onNotificar,
+    onNotificar: notify,
   });
 
   const crossingAllowed = estado?.modo === 'FASE_PEATONAL';
@@ -111,10 +118,10 @@ export function SimulationView({
     setAgentPhase,
     scheduleNextWave,
     requestCrossing,
-    onNotificar,
+    onNotificar: notify,
   });
 
-  const { isFullscreen, toggleFullscreen } = useFullscreen(viewRef, onNotificar);
+  const { isFullscreen, toggleFullscreen } = useFullscreen(viewRef, notify);
 
   const readyCount = agents.filter(
     (a) => a.phase === 'hidden' && !a.ephemeral
@@ -200,7 +207,6 @@ export function SimulationView({
 
       {ready ? (
         <StreetScene
-          key={simEpoch}
           estado={estado}
           tiempoRestante={tiempoRestante}
           agents={agents}

@@ -12,7 +12,6 @@ import { applyStoreToUi } from './storeSync';
 export function useSimSync({
   ready,
   setReady,
-  setSimEpoch,
   setAgents,
   setAuto,
   setAmbienceMode,
@@ -34,17 +33,17 @@ export function useSimSync({
         setAmbienceMode,
         posesRef,
       });
-      setSimEpoch((n) => n + 1);
       setReady(true);
     });
     return () => {
       cancelled = true;
     };
-  }, [posesRef, setAgents, setAmbienceMode, setAuto, setReady, setSimEpoch]);
+  }, [posesRef, setAgents, setAmbienceMode, setAuto, setReady]);
 
   useEffect(() => {
     if (!ready) return undefined;
     return subscribeSimStore((store) => {
+      // Actualizar estado sin remount del Canvas (evita spam THREE.Clock)
       applyingRemote.current = true;
       applyStoreToUi(store, {
         setAgents,
@@ -52,7 +51,6 @@ export function useSimSync({
         setAmbienceMode,
         posesRef,
       });
-      setSimEpoch((n) => n + 1);
       window.setTimeout(() => {
         applyingRemote.current = false;
       }, 800);
@@ -65,7 +63,6 @@ export function useSimSync({
     setAgents,
     setAmbienceMode,
     setAuto,
-    setSimEpoch,
   ]);
 
   useEffect(() => {

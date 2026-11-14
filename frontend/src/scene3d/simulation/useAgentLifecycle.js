@@ -112,19 +112,21 @@ export function useAgentLifecycle({
 
   const onPassengersAlight = useCallback(
     ({ at, count }) => {
+      let notice = null;
       setAgents((prev) => {
         const room = Math.max(0, MAX_PEDESTRIANS - prev.length);
         if (room <= 0) {
-          onNotificar?.(`Bus: sin cupo (máx. ${MAX_PEDESTRIANS} peatones)`);
+          notice = `Bus: sin cupo (máx. ${MAX_PEDESTRIANS} peatones)`;
           return prev;
         }
         const n = Math.min(count, room);
         const passengers = makeBusPassengers(at, n);
-        onNotificar?.(
-          `Bus: bajan ${n} — unos al mall, otros a cruzar (máx. ${MAX_PEDESTRIANS})`
-        );
+        notice = `Bus: bajan ${n} — unos al mall, otros a cruzar (máx. ${MAX_PEDESTRIANS})`;
         return clampAgents([...prev, ...passengers]);
       });
+      if (notice) {
+        queueMicrotask(() => onNotificar?.(notice));
+      }
       window.setTimeout(() => {
         requestCrossing();
       }, 1800);

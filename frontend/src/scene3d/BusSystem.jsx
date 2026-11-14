@@ -250,9 +250,20 @@ export function BusFleet({
       const clearedZebra = rearX < -ZEBRA_EDGE;
       const stopCenter = STOP_LINE + HALF_LEN + 0.12;
 
+      const distToStop = frontX - STOP_LINE;
       if (mustYield && !clearedZebra) {
-        if (!committed) targetSpeed = 0;
-        else targetSpeed = Math.max(MAX_SPEED, 4.2);
+        if (!committed) {
+          if (distToStop <= 0.28) targetSpeed = 0;
+          else if (distToStop < 14) {
+            const soft = Math.sqrt(Math.max(0.05, 2 * BRAKE * 0.72 * distToStop));
+            targetSpeed = Math.min(MAX_SPEED, Math.max(1.35, soft));
+            if (distToStop < 1.1) targetSpeed = Math.min(targetSpeed, 1.35);
+          } else {
+            targetSpeed = MAX_SPEED;
+          }
+        } else {
+          targetSpeed = Math.max(MAX_SPEED, 4.2);
+        }
       }
       if (blockedByCar && !(mustYield && committed && !clearedZebra)) {
         targetSpeed = 0;
@@ -260,8 +271,8 @@ export function BusFleet({
 
       const rate =
         targetSpeed < speed.current
-          ? mustYield && !committed
-            ? BRAKE * 1.35
+          ? mustYield && !committed && distToStop < 14
+            ? BRAKE * 1.15
             : BRAKE
           : ACCEL;
       speed.current += Math.sign(targetSpeed - speed.current) * rate * dt;

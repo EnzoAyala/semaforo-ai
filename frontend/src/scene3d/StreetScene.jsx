@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { Cloud, OrbitControls, Sky } from '@react-three/drei';
+import { OrbitControls, Sky } from '@react-three/drei';
 import * as THREE from 'three';
 import { Houses } from './Houses';
 import { Road } from './Road';
@@ -106,46 +106,6 @@ function AtmosphereRig({ ambienceMode, onAtmosphere }) {
         shadow-camera-top={28}
         shadow-camera-bottom={-28}
         shadow-bias={-0.00025}
-      />
-      <Cloud
-        seed={2}
-        position={[-18, 28, -36]}
-        speed={0.08}
-        opacity={atm.cloudOpacity}
-        segments={14}
-        bounds={[12, 2.2, 3]}
-        volume={6}
-        color="#f4f8fc"
-      />
-      <Cloud
-        seed={7}
-        position={[10, 30, -42]}
-        speed={0.06}
-        opacity={atm.cloudOpacity * 0.9}
-        segments={12}
-        bounds={[10, 2, 2.5]}
-        volume={5}
-        color="#eef4fa"
-      />
-      <Cloud
-        seed={14}
-        position={[22, 27, -28]}
-        speed={0.05}
-        opacity={atm.cloudOpacity * 0.85}
-        segments={10}
-        bounds={[9, 1.8, 2.2]}
-        volume={4.5}
-        color="#f7fafc"
-      />
-      <Cloud
-        seed={21}
-        position={[-8, 32, -48]}
-        speed={0.07}
-        opacity={atm.cloudOpacity * 0.75}
-        segments={10}
-        bounds={[8, 1.6, 2]}
-        volume={4}
-        color="#f0f5fa"
       />
     </>
   );
@@ -258,17 +218,13 @@ export function StreetScene({
   return (
     <div className="sim3d-canvas">
       <Canvas
-        shadows
+        shadows="percentage"
         camera={{ position: [14, 10, 16], fov: 42 }}
         dpr={[1, 1.75]}
         gl={{
           antialias: true,
           toneMapping: THREE.ACESFilmicToneMapping,
           toneMappingExposure: 1.05,
-        }}
-        onCreated={({ gl }) => {
-          gl.shadowMap.enabled = true;
-          gl.shadowMap.type = THREE.PCFSoftShadowMap;
         }}
       >
         <SceneContent

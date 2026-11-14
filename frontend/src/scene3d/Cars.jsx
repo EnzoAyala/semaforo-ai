@@ -19,8 +19,10 @@ const HALF_LEN = 0.95;
 const STOP_LINE_ABS = 3.2;
 /** Extremo de la cebra (rayas ±1.7); margen extra para despeje */
 const ZEBRA_EDGE = 2.0;
-/** Anticipación de frenado al acercarse en rojo */
+/** Distancia a la que empieza a reducir para llegar a la línea de alto */
 const APPROACH_BRAKE_DIST = 14;
+/** Velocidad mínima de acercamiento hasta la línea (no congelarse a mitad de vía) */
+const CRAWL_TO_STOP = 1.35;
 
 function CarVisual({ color, visualsRef, visualIndex }) {
   const root = useRef();
@@ -206,10 +208,20 @@ function LaneFleet({
       let target = cars[i].speed;
       if (mustYield && !clearedZebra) {
         if (!committed) {
-          // En rojo: siempre esperar ANTES de la cebra
-          target = 0;
-          if (distToStop > 0 && distToStop < APPROACH_BRAKE_DIST) {
+          // Avanzar hasta la línea de alto; solo frenar del todo al llegar
+          if (distToStop <= 0.28) {
             target = 0;
+          } else if (distToStop < APPROACH_BRAKE_DIST) {
+            const softStop = Math.sqrt(
+              Math.max(0.05, 2 * BRAKE * 0.72 * distToStop)
+            );
+            target = Math.min(cars[i].speed, Math.max(CRAWL_TO_STOP, softStop));
+            if (distToStop < 1.1) {
+              target = Math.min(target, CRAWL_TO_STOP);
+            }
+          } else {
+            // Todavía lejos: seguir a velocidad de crucero hacia la cebra
+            target = cars[i].speed;
           }
         } else {
           // Ya entró: despejar rápido (no quedarse sobre las rayas)
@@ -217,13 +229,15 @@ function LaneFleet({
         }
       }
       if (blockedByTraffic && !(mustYield && committed && !clearedZebra)) {
+        // No congelar lejos de la cebra si el hueco es con el auto parado delante
+        // en la línea: ahí sí hay que respetar el gap.
         target = 0;
       }
 
       const rate =
         target < speeds.current[i]
-          ? mustYield && !committed
-            ? BRAKE * 1.35
+          ? mustYield && !committed && distToStop < APPROACH_BRAKE_DIST
+            ? BRAKE * 1.15
             : BRAKE
           : ACCEL;
       speeds.current[i] += Math.sign(target - speeds.current[i]) * rate * dt;
