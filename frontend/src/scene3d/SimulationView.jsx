@@ -3,7 +3,7 @@
  * La lógica vive en ./simulation/* (sync, oleadas, PIR, fases).
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Maximize, Minimize } from 'lucide-react';
+import { Maximize, Minimize, PersonStanding, Video } from 'lucide-react';
 import { StreetScene } from './StreetScene';
 import { StatusBanner } from '../components/layout/StatusBanner';
 import { makeInitialAgents } from './agents/pedestrianAgents';
@@ -30,6 +30,9 @@ export function SimulationView({
   const [agents, setAgents] = useState(() => makeInitialAgents());
   const [auto, setAuto] = useState(true);
   const [ambienceMode, setAmbienceMode] = useState('day');
+  const [walkMode, setWalkMode] = useState(false);
+  const [pointerLocked, setPointerLocked] = useState(false);
+  const [nearInteract, setNearInteract] = useState(null);
 
   const viewRef = useRef(null);
   const agentsRef = useRef(agents);
@@ -127,10 +130,29 @@ export function SimulationView({
     (a) => a.phase === 'hidden' && !a.ephemeral
   ).length;
 
+  const toggleWalkMode = useCallback(() => {
+    setWalkMode((v) => {
+      const next = !v;
+      if (!next) {
+        setPointerLocked(false);
+        setNearInteract(null);
+      } else {
+        notify('Modo peatón: clic en la escena para mirar · WASD mover · E interactuar · Esc soltar');
+      }
+      return next;
+    });
+  }, [notify]);
+
+  const onPlayerInteract = useCallback(() => {
+    pulsarBoton();
+  }, [pulsarBoton]);
+
   return (
     <section
       ref={viewRef}
-      className={`sim3d-view${isFullscreen ? ' is-fullscreen' : ''}`}
+      className={`sim3d-view${isFullscreen ? ' is-fullscreen' : ''}${
+        walkMode ? ' is-walk-mode' : ''
+      }`}
     >
       <div className="sim3d-toolbar">
         <div>
@@ -149,6 +171,7 @@ export function SimulationView({
             {' · PIR '}
             {sensorPirActivo(estado?.modo) ? 'activo' : 'bloqueado'}
             {auto ? ' · AUTO ON' : ' · AUTO OFF'}
+            {walkMode ? ' · 1ª PERSONA' : ''}
           </p>
         </div>
         <div className="sim3d-actions">
@@ -165,6 +188,26 @@ export function SimulationView({
               ))}
             </select>
           </label>
+          <button
+            type="button"
+            className={`btn ${walkMode ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={toggleWalkMode}
+            title={
+              walkMode
+                ? 'Volver a cámara orbital'
+                : 'Entrar en primera persona (WASD + ratón)'
+            }
+          >
+            {walkMode ? (
+              <>
+                <Video size={16} strokeWidth={2.25} aria-hidden /> Cámara
+              </>
+            ) : (
+              <>
+                <PersonStanding size={16} strokeWidth={2.25} aria-hidden /> Caminar
+              </>
+            )}
+          </button>
           <button
             type="button"
             className={`btn ${auto ? 'btn-primary' : 'btn-secondary'}`}
@@ -205,26 +248,54 @@ export function SimulationView({
         </div>
       </div>
 
-      {ready ? (
-        <StreetScene
-          estado={estado}
-          tiempoRestante={tiempoRestante}
-          agents={agents}
-          onPhaseEvent={onPhaseEvent}
-          onPose={onPose}
-          onPassengersAlight={onPassengersAlight}
-          ambienceMode={ambienceMode}
-        />
-      ) : (
-        <div className="sim3d-canvas sim3d-loading">
-          Sincronizando simulación con la red…
-        </div>
-      )}
+      <div className="sim3d-stage">
+        {ready ? (
+          <StreetScene
+            estado={estado}
+            tiempoRestante={tiempoRestante}
+            agents={agents}
+            onPhaseEvent={onPhaseEvent}
+            onPose={onPose}
+            onPassengersAlight={onPassengersAlight}
+            ambienceMode={ambienceMode}
+            walkMode={walkMode}
+            onLockChange={setPointerLocked}
+            onNearInteract={setNearInteract}
+            onInteract={onPlayerInteract}
+          />
+        ) : (
+          <div className="sim3d-canvas sim3d-loading">
+            Sincronizando simulación con la red…
+          </div>
+        )}
+
+        {walkMode && !pointerLocked && (
+          <div className="sim3d-walk-overlay" aria-hidden>
+            <p>
+              <strong>Clic</strong> para mirar con el ratón
+            </p>
+            <p>
+              <kbd>W</kbd>
+              <kbd>A</kbd>
+              <kbd>S</kbd>
+              <kbd>D</kbd> mover · <kbd>Shift</kbd> correr · <kbd>Esc</kbd>{' '}
+              soltar
+            </p>
+          </div>
+        )}
+
+        {walkMode && pointerLocked && nearInteract && (
+          <div className="sim3d-interact-hint" role="status">
+            <kbd>E</kbd> Pulsar / activar sensor
+          </div>
+        )}
+      </div>
 
       <StatusBanner mensaje={mensaje} />
       <p className="sim3d-hint">
-        Escena compartida en la LAN · F5 y otros dispositivos retoman el mismo
-        estado vía API/WebSocket.
+        {walkMode
+          ? 'Primera persona · WASD + ratón · E cerca del PIR/pulsador'
+          : 'Escena compartida en la LAN · F5 y otros dispositivos retoman el mismo estado vía API/WebSocket.'}
       </p>
     </section>
   );

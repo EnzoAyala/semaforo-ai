@@ -103,6 +103,14 @@
   font-size: 0.95rem;
 }
 
+.sim3d-stage {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+}
+
 .sim3d-canvas {
   flex: 1 1 auto;
   min-height: 220px;
@@ -110,6 +118,70 @@
   overflow: hidden;
   border: 1px solid var(--line);
   background: #6fa0c8;
+}
+
+.sim3d-canvas.is-walk {
+  cursor: crosshair;
+}
+
+.sim3d-walk-overlay {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  gap: 0.45rem;
+  text-align: center;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(8, 12, 20, 0.55),
+    rgba(8, 12, 20, 0.18) 55%,
+    transparent 75%
+  );
+  color: #f8fafc;
+  font-size: 0.95rem;
+  z-index: 2;
+  border-radius: 16px;
+}
+
+.sim3d-walk-overlay p {
+  margin: 0;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.65);
+}
+
+.sim3d-walk-overlay kbd,
+.sim3d-interact-hint kbd {
+  display: inline-block;
+  min-width: 1.35em;
+  padding: 0.12em 0.35em;
+  margin: 0 0.12em;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(15, 23, 42, 0.75);
+  font: inherit;
+  font-size: 0.85em;
+}
+
+.sim3d-interact-hint {
+  pointer-events: none;
+  position: absolute;
+  left: 50%;
+  bottom: 1.25rem;
+  transform: translateX(-50%);
+  z-index: 3;
+  padding: 0.45rem 0.85rem;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.82);
+  color: #f8fafc;
+  font-size: 0.88rem;
+  letter-spacing: 0.02em;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+}
+
+.sim3d-actions .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
 }
 
 .sim3d-hint {

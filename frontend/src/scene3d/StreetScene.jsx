@@ -11,6 +11,7 @@ import { Trees } from './Trees';
 import { Environment } from './Environment';
 import { Mall } from './Mall';
 import { BusFleet, BusStop } from './BusSystem';
+import { FirstPersonPlayer } from './FirstPersonPlayer';
 import {
   sampleAtmosphere,
   sunPositionFromAtmosphere,
@@ -119,6 +120,10 @@ function SceneContent({
   onPose,
   onPassengersAlight,
   ambienceMode,
+  walkMode = false,
+  onLockChange,
+  onNearInteract,
+  onInteract,
 }) {
   const modo = estado?.modo || 'REPOSO';
   // Luces = diagrama README (modo es la fuente de verdad)
@@ -195,14 +200,23 @@ function SceneContent({
         />
       </mesh>
 
-      <OrbitControls
-        enablePan={false}
-        minDistance={8}
-        maxDistance={55}
-        minPolarAngle={0.12}
-        maxPolarAngle={Math.PI / 2.05}
-        target={[0, 0.8, 0]}
-      />
+      {walkMode ? (
+        <FirstPersonPlayer
+          enabled
+          onLockChange={onLockChange}
+          onNearInteract={onNearInteract}
+          onInteract={onInteract}
+        />
+      ) : (
+        <OrbitControls
+          enablePan={false}
+          minDistance={8}
+          maxDistance={55}
+          minPolarAngle={0.12}
+          maxPolarAngle={Math.PI / 2.05}
+          target={[0, 0.8, 0]}
+        />
+      )}
     </>
   );
 }
@@ -215,12 +229,20 @@ export function StreetScene({
   onPose,
   onPassengersAlight,
   ambienceMode = 'day',
+  walkMode = false,
+  onLockChange,
+  onNearInteract,
+  onInteract,
 }) {
   return (
-    <div className="sim3d-canvas">
+    <div className={`sim3d-canvas${walkMode ? ' is-walk' : ''}`}>
       <Canvas
+        key={walkMode ? 'fps' : 'orbit'}
         shadows="percentage"
-        camera={{ position: [14, 10, 16], fov: 42 }}
+        camera={{
+          position: walkMode ? [0.4, 1.65, 8.6] : [14, 10, 16],
+          fov: walkMode ? 70 : 42,
+        }}
         dpr={[1, 1.75]}
         gl={{
           antialias: true,
@@ -236,6 +258,10 @@ export function StreetScene({
           onPose={onPose}
           onPassengersAlight={onPassengersAlight}
           ambienceMode={ambienceMode}
+          walkMode={walkMode}
+          onLockChange={onLockChange}
+          onNearInteract={onNearInteract}
+          onInteract={onInteract}
         />
       </Canvas>
     </div>
